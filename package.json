@@ -1,0 +1,43 @@
+{
+  "name": "openbpt-modeler-template",
+  "version": "0.0.1",
+  "description": "Generic template based on diagram-js for modelers used in the OpenBPT platform.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bptlab/openbpt-modeler-template"
+  },
+  "author": "Maximilian König",
+  "license": "MIT",
+  "keywords": [
+    "modeler",
+    "modeling",
+    "template",
+    "diagram-js"
+  ],
+  "main": "index.js",
+  "files": [
+    "assets",
+    "lib",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
+  "scripts": {},
+  "dependencies": {
+    "bpmn-font": "^0.12.1",
+    "diagram-js": "^15.2.4",
+    "diagram-js-direct-editing": "^2.1.2",
+    "ids": "^1.0.5",
+    "inherits": "^2.0.4",
+    "jquery": "^3.7.1",
+    "min-dash": "^4.2.1",
+    "min-dom": "^5.0.0",
+    "moddle": "^6.2.3",
+    "moddle-xml": "^10.1.0",
+    "object-refs": "^0.4.0",
+    "tiny-svg": "^4.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  }
+}
