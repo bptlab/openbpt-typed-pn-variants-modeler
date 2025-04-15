@@ -17,6 +17,15 @@ Implementing a new modeler requires the definition of the metamodel of the model
 
 ### Defining the Metamodel
 
+To define the model structure, we build on [moddle](https://github.com/bpmn-io/moddle), which uses a schema defined as a JSON file to create a meta model that can be used to instantiate model elements while knowing their attributes and relations and provides a structure for importing and exporting XML files.
+The followning class diagram shows the currently implemented metamodel used in the modeler. It can be generally divided into two sides:
+- The *semantic* elements are the classes on the left, everything inheriting from `Schema`. They define the different model elements and their attributes/relations.
+- The *syntactic* elements are the classes on the right, everything inheriting from `DiagramElement` as well as `Diagram` and `Plane`. These elements are visual representatoions of the model elements, including positional information and associated labels.
+
+![Moddle_Class_Diagram](https://github.com/user-attachments/assets/465970e3-e9ab-4c4b-b243-0a61c9277a8a)
+
+In most cases, it should not be necessary to modify the metamodel of the *syntactic* elements. For the *semantic* elements, the classes inheriting from `Node` and `BinaryConnection` (marked in red) must be defined for the respective modeling language in [modelSchema.js](https://github.com/bptlab/openbpt-modeler-template/blob/main/lib/moddle/resources/modelSchema.js). A documentation can be found [here](https://github.com/bpmn-io/moddle/blob/main/docs/descriptor.md). Note that `isAttr` should be set for any attribute that should be explicitly referenceable. 
+
 ### Creating a Custom Renderer
 
 ### Adding Icons
