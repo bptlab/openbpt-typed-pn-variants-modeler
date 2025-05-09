@@ -27,6 +27,7 @@
   ],
   "scripts": {},
   "dependencies": {
+    "@bpmn-io/properties-panel": "^3.26.4",
     "bpmn-font": "^0.12.1",
     "diagram-js": "^15.2.4",
     "diagram-js-direct-editing": "^2.1.2",
