@@ -14,3 +14,35 @@
   background-color: transparent;
   opacity: 1;
 }
+
+.custom-token-modal {
+  background: #fff;
+  padding: 20px;
+  border: 1px solid #ccc;
+  z-index: 10000;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  min-width: 220px;
+  height: auto;
+}
+
+.custom-token-btn-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.custom-token-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #bbb;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.custom-token-btn:hover {
+  background: #e0e0e0;
+}
