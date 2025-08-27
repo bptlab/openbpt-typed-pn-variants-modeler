@@ -160,3 +160,80 @@
 .bts-context-pad [class*=" bpmn-icon-"]:before {
   margin: 0;
 }
+
+/* Fire overlay (moved from inline styles in FireTransitionHandler.js) */
+.bts-fire-overlay {
+  background: #fff;
+  padding: 10px;
+  border: 1px solid rgba(0,0,0,0.12);
+  min-width: 260px;
+  box-sizing: border-box;
+}
+
+.bts-fire-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bts-fire-title {
+  font-weight: 600;
+}
+
+.bts-fire-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bts-fire-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.bts-fire-row select {
+  flex: 1 1 auto;
+}
+
+/* Ensure two-column layout: label (left) and control (right).
+   Apply to common adapter output shapes by selecting immediate children
+   and common form-js generated wrappers. */
+.bts-fire-fields > * {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.bts-fire-fields label,
+.bts-fire-fields .fjs-label,
+.bts-fire-fields .field-label {
+  /* label min-width will be adjusted dynamically by JS; provide a sensible default */
+  min-width: 120px;
+  margin: 0;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.bts-fire-fields select,
+.bts-fire-fields .fjs-input,
+.bts-fire-fields .field-control {
+  flex: 1 1 auto;
+}
+
+.bts-fire-footer {
+  text-align: right;
+  margin-top: 6px;
+}
+
+.bts-fire-cancel,
+.bts-fire-fast {
+  margin-right: 8px;
+}
+
+.bts-fire-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
