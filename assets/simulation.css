@@ -49,6 +49,24 @@
   display: none !important;
 }
 
+/* Ensure our fire overlay is visible in simulation mode */
+.djs-container.simulation .djs-overlay-bts-fire-overlay {
+  display: block !important;
+}
+
+.djs-container.simulation .djs-overlay-bts-fire-overlay .bts-fire-overlay {
+  z-index: 2000 !important;
+  pointer-events: auto !important;
+}
+
+/* Even stronger override in case other stylesheets apply display:none to .djs-overlay */
+.djs-container.simulation .djs-overlays .djs-overlay.djs-overlay-bts-fire-overlay {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 .djs-container .djs-palette {
   top: 60px !important;
 }
