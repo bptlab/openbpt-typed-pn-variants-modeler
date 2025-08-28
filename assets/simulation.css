@@ -134,6 +134,19 @@
   box-sizing: border-box;
 }
 
+/* wrapper for multiple context pads so each button has its own background */
+.bts-context-menu-wrapper {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.djs-overlay-bts-context-menu .bts-context-pad {
+  /* ensure overlay sizing doesn't collapse when multiple pads exist */
+  width: 30px;
+  height: 30px;
+}
+
 .bts-context-pad:not(.disabled):hover {
   background-color: var(--token-simulation-green-base-44, #10d070);
   opacity: 1;
@@ -159,6 +172,11 @@
 .bts-context-pad [class^="bpmn-icon-"]:before,
 .bts-context-pad [class*=" bpmn-icon-"]:before {
   margin: 0;
+}
+
+/* fast-fire icon in context pad */
+.pn-icon-fast-fire:before {
+  content: "⚡";
 }
 
 /* Fire overlay (moved from inline styles in FireTransitionHandler.js) */
