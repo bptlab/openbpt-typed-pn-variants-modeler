@@ -33,6 +33,7 @@
 }
 
 .djs-container.simulation .djs-bendpoint,
+.djs-container.simulation .djs-context-pad,
 .djs-container.simulation .djs-outline,
 .djs-container.simulation .djs-palette,
 .djs-container.simulation .djs-resizer,
