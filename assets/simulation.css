@@ -1,0 +1,257 @@
+.canvas {
+  padding: 0px;
+}
+
+.simulation {
+  box-shadow: inset 0px 0px 0px 4px
+    var(--token-simulation-green-base-44, #10d070);
+}
+
+.ptn-toggle-mode {
+  cursor: pointer;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: var(--token-simulation-silver-darken-94, #efefef);
+  border-radius: 2px;
+  padding: 6px;
+  font-size: 16px;
+  color: var(--token-simulation-grey-darken-30, #212121);
+  user-select: none;
+  display: inline-flex;
+}
+
+.ptn-toggle-mode .ptn-toggle {
+  margin-left: 0.25em;
+  display: inline-flex;
+}
+
+.djs-container.simulation .ptn-toggle-mode,
+.ptn-toggle-mode:hover {
+  background-color: var(--token-simulation-green-base-44, #10d070);
+  color: var(--token-simulation-white, #ffffff);
+}
+
+.djs-container.simulation .djs-bendpoint,
+.djs-container.simulation .djs-outline,
+.djs-container.simulation .djs-palette,
+.djs-container.simulation .djs-resizer,
+.djs-container.simulation .djs-segment-dragger {
+  display: none !important;
+}
+
+.djs-container.simulation
+  .djs-overlay:not(
+    .djs-overlay-bts-context-menu,
+    .djs-overlay-bts-element-notification,
+    .djs-overlay-bts-token-count
+  ) {
+  display: none !important;
+}
+
+/* Ensure our fire overlay is visible in simulation mode */
+.djs-container.simulation .djs-overlay-bts-fire-overlay {
+  display: block !important;
+}
+
+.djs-container.simulation .djs-overlay-bts-fire-overlay .bts-fire-overlay {
+  z-index: 2000 !important;
+  pointer-events: auto !important;
+}
+
+/* Even stronger override in case other stylesheets apply display:none to .djs-overlay */
+.djs-container.simulation .djs-overlays .djs-overlay.djs-overlay-bts-fire-overlay {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.djs-container .djs-palette {
+  top: 60px !important;
+}
+
+.bts-palette {
+  position: absolute;
+  top: 60px;
+  left: 20px;
+}
+
+.bts-palette.hidden {
+  display: none;
+}
+
+.bts-palette .bts-entry {
+  cursor: pointer;
+  background-color: var(--token-simulation-silver-darken-94, #efefef);
+  border-radius: 2px;
+  padding: 6px 0;
+  margin-bottom: 6px;
+  font-size: 16px;
+  color: var(--token-simulation-grey-darken-30, #212121);
+  user-select: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  box-sizing: border-box;
+  transition: all 0.1s ease;
+}
+
+.bts-palette .bts-entry:last-child {
+  margin-bottom: 0;
+}
+
+.bts-palette .bts-entry:not(.disabled):hover {
+  color: var(--token-simulation-white, #ffffff);
+  background-color: var(--token-simulation-green-base-44, #10d070);
+}
+
+.bts-palette .bts-entry.active {
+  color: var(--token-simulation-white, #ffffff);
+  background-color: var(--token-simulation-green-base-44, #10d070);
+}
+
+.bts-palette .bts-entry.disabled {
+  pointer-events: none;
+  color: var(--token-simulation-grey-base-40, #666666);
+}
+
+.bts-context-pad {
+  cursor: pointer;
+  background-color: var(--token-simulation-grey-lighten-56, #909090);
+  border-radius: 2px;
+  margin: 0;
+  font-size: 16px;
+  color: var(--token-simulation-grey-darken-30, #212121);
+  opacity: 0.5;
+  transition: all 0.1s ease-in-out;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* wrapper for multiple context pads so each button has its own background */
+.bts-context-menu-wrapper {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.djs-overlay-bts-context-menu .bts-context-pad {
+  /* ensure overlay sizing doesn't collapse when multiple pads exist */
+  width: 30px;
+  height: 30px;
+}
+
+.bts-context-pad:not(.disabled):hover {
+  background-color: var(--token-simulation-green-base-44, #10d070);
+  opacity: 1;
+  color: var(--token-simulation-white, #ffffff);
+}
+
+.djs-overlays:not(.hover) .bts-context-pad:not(:hover).show-hover,
+.bts-context-pad:not(:hover) .show-hover,
+.bts-context-pad:hover .hide-hover {
+  display: none;
+}
+
+.bts-context-pad.disabled {
+  background-color: var(--token-simulation-silver-darken-94, #efefef);
+  color: var(--token-simulation-grey-base-40, #666666);
+  pointer-events: none;
+}
+
+.bts-context-pad.hidden {
+  display: none;
+}
+
+.bts-context-pad [class^="bpmn-icon-"]:before,
+.bts-context-pad [class*=" bpmn-icon-"]:before {
+  margin: 0;
+}
+
+/* fast-fire icon in context pad */
+.pn-icon-fast-fire:before {
+  content: "⚡";
+}
+
+/* Fire overlay (moved from inline styles in FireTransitionHandler.js) */
+.bts-fire-overlay {
+  background: #fff;
+  padding: 10px;
+  border: 1px solid rgba(0,0,0,0.12);
+  min-width: 260px;
+  box-sizing: border-box;
+}
+
+.bts-fire-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bts-fire-title {
+  font-weight: 600;
+}
+
+.bts-fire-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bts-fire-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.bts-fire-row select {
+  flex: 1 1 auto;
+}
+
+/* Ensure two-column layout: label (left) and control (right).
+   Apply to common adapter output shapes by selecting immediate children
+   and common form-js generated wrappers. */
+.bts-fire-fields > * {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.bts-fire-fields label,
+.bts-fire-fields .fjs-label,
+.bts-fire-fields .field-label {
+  /* label min-width will be adjusted dynamically by JS; provide a sensible default */
+  min-width: 120px;
+  margin: 0;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.bts-fire-fields select,
+.bts-fire-fields .fjs-input,
+.bts-fire-fields .field-control {
+  flex: 1 1 auto;
+}
+
+.bts-fire-footer {
+  text-align: right;
+  margin-top: 6px;
+}
+
+.bts-fire-cancel,
+.bts-fire-fast {
+  margin-right: 8px;
+}
+
+.bts-fire-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
