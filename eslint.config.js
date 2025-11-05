@@ -13,6 +13,11 @@ export default [
   // language options and rules
   {
     languageOptions: {
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
       ecmaVersion: "latest",
       sourceType: "module",
     },
