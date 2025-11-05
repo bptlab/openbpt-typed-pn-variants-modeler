@@ -22,7 +22,7 @@
   border: 1px solid #ccc;
   z-index: 10000;
   border-radius: 6px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   min-width: 220px;
   height: auto;
 }

@@ -60,7 +60,9 @@
 }
 
 /* Even stronger override in case other stylesheets apply display:none to .djs-overlay */
-.djs-container.simulation .djs-overlays .djs-overlay.djs-overlay-bts-fire-overlay {
+.djs-container.simulation
+  .djs-overlays
+  .djs-overlay.djs-overlay-bts-fire-overlay {
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -183,7 +185,7 @@
 .bts-fire-overlay {
   background: #fff;
   padding: 10px;
-  border: 1px solid rgba(0,0,0,0.12);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   min-width: 260px;
   box-sizing: border-box;
 }
