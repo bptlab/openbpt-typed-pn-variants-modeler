@@ -26,7 +26,7 @@ export default [
     },
     rules: {
       "no-console": "off",
-      "prettier/prettier": "warn",
+      "prettier/prettier": ["warn", { trailingComma: "all" }],
     },
   },
 ];
