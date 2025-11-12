@@ -30,6 +30,6 @@ The followning class diagram shows the currently implemented metamodel used in t
 - The _semantic_ elements are the classes on the left, everything inheriting from `Schema`. They define the different model elements and their attributes/relations.
 - The _syntactic_ elements are the classes on the right, everything inheriting from `DiagramElement` as well as `Diagram` and `Plane`. These elements are visual representatoions of the model elements, including positional information and associated labels.
 
-![Moddle_Class_Diagram](https://github.com/user-attachments/assets/465970e3-e9ab-4c4b-b243-0a61c9277a8a)
+![OPID_Class_Diagram](https://github.com/user-attachments/assets/2b4c63d3-8a09-49a7-8e7b-635a30bd07c8)
 
 In most cases, it should not be necessary to modify the metamodel of the _syntactic_ elements. For the _semantic_ elements, the classes inheriting from `Node` and `BinaryConnection` (marked in red) must be defined for the respective modeling language in [modelSchema.js](https://github.com/bptlab/openbpt-modeler-template/blob/main/lib/moddle/resources/modelSchema.js). Further information can be found in the [documentation](https://github.com/bpmn-io/moddle/blob/main/docs/descriptor.md). Setting `isAttr` for a property will include it as an attribute in the XML, otherwise it is stored as a separate child-tag.
