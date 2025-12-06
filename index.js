@@ -1,1 +1,1 @@
-export { default } from "./lib/CustomModeler";
+export { default } from "./dist/lib/CustomModeler";

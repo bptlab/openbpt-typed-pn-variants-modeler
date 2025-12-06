@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "es6",
+    "lib": ["ES2019", "DOM"],
+    "rootDir": ".",
+    "outDir": "dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "declaration": false,
+    "incremental": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "lib/**/*",
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

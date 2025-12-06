@@ -17,18 +17,24 @@
     "OPIDs",
     "DOPIDs"
   ],
-  "main": "index.js",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./dist/lib/NavigatedViewer": "./dist/lib/NavigatedViewer.js",
+    "./assets/tpn-js.css": "./assets/tpn-js.css"
+  },
   "files": [
     "assets",
-    "lib",
+    "dist",
     "LICENSE",
     "package.json",
     "README.md"
   ],
   "scripts": {
-    "lint": "eslint . --ext .js",
-    "lint:fix": "eslint . --ext .js --fix",
-    "format": "prettier --write ."
+    "lint": "eslint . --ext .js,.ts",
+    "lint:fix": "eslint . --ext .js,.ts --fix",
+    "format": "prettier --write .",
+    "watch": "tsc -w -p tsconfig.json"
   },
   "dependencies": {
     "@bpmn-io/properties-panel": "^3.26.4",
@@ -47,9 +53,14 @@
     "tiny-svg": "^4.0.0"
   },
   "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.48.1",
+    "@typescript-eslint/parser": "^8.48.1",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.4",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }
