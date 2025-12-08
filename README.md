@@ -20,7 +20,9 @@ The modeler is based on the [openbpt-modeler-petri-net](https://github.com/bptla
 8. Run ``npm install``
 9. Run ``npm link openbpt-typed-pn-variants-modeler``
 
-To start the modeler, run ``npm run dev`` in the development repo's directory.
+To start the modeler, run
+1. ``npm run watch`` in this repository to automatically compile changes to js (relevant for changes to .ts files)
+2. ``npm run dev`` in the development repo's directory.
 
 ## Defining the Metamodel
 
