@@ -19,7 +19,7 @@
   ],
   "main": "dist/index.js",
   "exports": {
-    ".": "./dist/index.js",
+    "./dist/lib/CustomModeler": "./dist/lib/CustomModeler.js",
     "./dist/lib/NavigatedViewer": "./dist/lib/NavigatedViewer.js",
     "./assets/tpn-js.css": "./assets/tpn-js.css"
   },
