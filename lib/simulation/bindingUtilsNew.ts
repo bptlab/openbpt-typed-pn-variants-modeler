@@ -2,6 +2,8 @@
 // This function returns an array of binding objects mapping variableName -> array[value].
 // These mapped arrays contain all values for one variableName that can be used to fire once.
 
+import { is } from "../util/Util";
+
 type TokenValue = {
   dataClassId: string;
   value: string;
@@ -18,6 +20,7 @@ type ArcPlaceInfo = {
   placeId: string;
   token: Array<TokenValue>;
   isInhibitorArc: boolean;
+  isLinkingPlace: boolean;
   dataClassInfoDict: {
     [dataClassId: string]: DataClassInfo;
   };
@@ -84,11 +87,13 @@ function buildArcPlaceInfo(arc: any) {
     placeId,
     token: customMarking,
     isInhibitorArc,
+    isLinkingPlace: Object.keys(dataClassInfoDict).length > 1,
     dataClassInfoDict,
   };
 }
 
 // TODO: transition invalid if input arc is variable and matching output arc is not variable and vice versa
+// Returns true if one of outgoing arcs doesn't match incoming arc and is not generating
 function isInvalidDueToOutputs(incomingArcs: any[], outgoingArcs: any[]) {
   const realInputVarNames = new Set();
   incomingArcs.forEach((arc) => {
@@ -118,19 +123,17 @@ export function getValidInputBindings(transition: any) {
     return [];
   }
 
-  const arcBindings: any = [];
-
+  // If no incoming arcs, transition is always enabled
   if (transition.incoming.length === 0) {
-    return [arcBindings];
+    return [[]]; // For consistency, return array with one empty binding
   }
 
   const arcPlaceInfoMap: { [arcId: string]: ArcPlaceInfo } = {};
-
   for (const arc of transition.incoming) {
     arcPlaceInfoMap[arc.id] = buildArcPlaceInfo(arc);
   }
 
-  // For each arcplaceinfo
+  // For each arcPlaceInfo, check if there are tokens available, otherwise return no bindings
   if (
     !Object.values(arcPlaceInfoMap).every(
       (arcPlaceInfo) => arcPlaceInfo.token.length > 0,
@@ -139,8 +142,9 @@ export function getValidInputBindings(transition: any) {
     return [];
   }
 
-  //   for (const arcPlaceInfo of Object.values(arcPlaceInfoMap)) {
-  //   }
+  const arcBindings: any = [];
+  for (const arcPlaceInfo of Object.values(arcPlaceInfoMap)) {
+  }
 
   return arcBindings;
 }
