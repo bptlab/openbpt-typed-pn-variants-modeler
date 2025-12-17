@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 interface ModelElement {
   id: string;
-  // name: string;
 }
 
 interface Node extends ModelElement {}
@@ -14,12 +13,8 @@ interface Transition extends Node {
 interface Place extends Node {
   incoming: Array<Arc>;
   outgoing: Array<Arc>;
-  marking: Array<Token>;
+  marking: Array<any>;
   color: Array<DataClass>;
-}
-
-interface Token {
-  values: Array<TokenValue>;
 }
 
 interface TokenValue {
@@ -37,14 +32,7 @@ interface Arc extends ModelElement {
   };
 }
 
-// ----------------
-
-interface Decleration {
-  id: string;
-  // name: string;
-}
-
-interface DataClass extends Decleration {
+interface DataClass extends ModelElement {
   label: string;
 }
 
