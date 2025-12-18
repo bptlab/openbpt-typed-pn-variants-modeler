@@ -1,25 +1,5 @@
-import { link } from "fs";
-import { get } from "http";
+import { getBiggestLinks } from "./bindingUtilsHelpers";
 
-// Token: An Array of TokenValue representing one token
-type Token = TokenValue[];
-
-// Binding: An Array of Token[] representing one possible binding
-// Token[]: all possible token per arc, which are later choosable
-type Binding = Token[][];
-
-// Link: An array of id-label-pairs representing a link
-// type Link = DataClass[];
-
-type LinkToken = {variableType: DataClass | undefined; values: Token};
-
-type LinkTokenPerPlace = { [placeId: string]: LinkToken[] };
-
-// OutputToken: A mapping from dataClass label to value that is used by FireTransitionHandler
-type OutputToken = { [label: string]: string };
-
-// OutputBinding: An array of OutputToken arrays representing one output binding
-type OutputBinding = OutputToken[][];
 
 // ArcBindingCandidates: All possible bindings for one arc
 // type ArcBindingCandidates = Binding[];
@@ -27,28 +7,6 @@ type OutputBinding = OutputToken[][];
 // ValidBindings: All valid complete bindings for a transition
 // (chooses one binding from each ArcBindingsCandidates per arc)
 // type ValidBindings = Binding[];
-
-interface DataClassInfo {
-  isVariable: boolean;
-  label: string;
-  tokenValues: TokenValue["value"][];
-}
-
-interface ArcPlaceInfo {
-  arcId: string;
-  placeId: string;
-  tokens: Token[];
-  isInhibitorArc: boolean;
-  isLinkingPlace: boolean;
-  variableClass: DataClass | undefined; // TODO: needed?
-  dataClassInfoDict: {
-    [dataClassId: string]: DataClassInfo;
-  };
-}
-
-interface ArcPlaceInfoDict {
-  [arcId: string]: ArcPlaceInfo;
-}
 
 function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
   const place: Place = arc.businessObject.source as Place;
@@ -284,6 +242,7 @@ function getLinkedBindingCandidates(
   jointSingleBindingCandidates: Binding[],
   linkTokenPerPlace: LinkTokenPerPlace,
   placeIdPerLabelDataClass: { [key: string]: string[] },
+  biggestLinks: Link[],
   arcPlaceInfoDict: ArcPlaceInfoDict,
 ): Binding[] {
   if (Object.keys(linkTokenPerPlace).length === 0) {
@@ -292,12 +251,20 @@ function getLinkedBindingCandidates(
 
   const linkedBindingCandidates: Binding[] = [];
   
-  if (jointSingleBindingCandidates.length > 0) {
-    if (Object.keys(linkTokenPerPlace).length > 1) {
-      console.warn("Multiple links are not yet fully supported.");
-      // TODO: Check that all linkTokenPerPlace are exclusive in terms of dataClasses used
-      // if not, create new linkToken combinations that satisfy all linkTokenPerPlace simultaneously
+  if (jointSingleBindingCandidates.length == 0) {
+    // Special case: only one linking arc: Return its tokens as bindings
+    if (Object.keys(linkTokenPerPlace).length === 1) {
+      return arcPlaceInfoDict[Object.keys(arcPlaceInfoDict)[0]].tokens.map(token => [[token]]);
     }
+    else {
+      //return createLinkBindingPerPlace(linkTokenPerPlace, placeIdPerLabelDataClass)[0];
+    }
+  }
+  else {
+    // TODO: Check that all linkTokenPerPlace are exclusive in terms of dataClasses used
+    // if not, create new linkToken combinations that satisfy all linkTokenPerPlace simultaneously
+    // let [linkBindingPerPlace, placeIdPerLabelDataClass] = createLinkBindingPerPlace(linkTokenPerPlace, placeIdPerLabelDataClass);
+    
 
     // For each joint binding candidate, check if any link token matches. 
     // If so, keep the binding candidate and extend it with the link token.
@@ -365,14 +332,41 @@ function getLinkedBindingCandidates(
       }
     }
   }
-  else {
-    // Special case: only one linking arc: Return its tokens as bindings
-    if (Object.keys(arcPlaceInfoDict).length === 1 && !arcPlaceInfoDict[Object.keys(arcPlaceInfoDict)[0]].isInhibitorArc) {
-      return arcPlaceInfoDict[Object.keys(arcPlaceInfoDict)[0]].tokens.map(token => [[token]]);
-    }
-  }
 
   return linkedBindingCandidates;
+}
+
+function createLinkBindingPerPlace(
+  linkTokenPerPlace: LinkTokenPerPlace,
+  placeIdPerLabelDataClass: { [key: string]: string[] },
+  biggestLinks: Link[],
+): [{ [key: string]: LinkToken[][][] }, { [key: string]: string[] }] {
+  const linkBindingPerPlace: { [key: string]: LinkToken[][][] } = {};
+  const updatedPlaceIdPerLabelDataClass = {...placeIdPerLabelDataClass};
+
+  for (const link of biggestLinks) {
+    // Find all placeIds for this link
+    const labelIdKeys = link.map(l => `${l.label}::${l.id}`);
+
+    const placeIds = new Set(
+      labelIdKeys
+      .map(key => placeIdPerLabelDataClass[key] || [])
+      .flat()
+    );
+
+    const tokenToJoin = placeIds.size > 0 ? Array.from(placeIds).map(placeId => linkTokenPerPlace[placeId] || []) : [];
+    // TODO: implement joinLinkTokens
+    // const joinedLinkTokens = joinLinkTokens(tokenToJoin); 
+
+    const newPlaceId = link.map(l => `${l.id}:${l.label}`).join("::");
+    // linkBindingPerPlace[newPlaceId] = joinedLinkTokens;
+
+    labelIdKeys.forEach(key => {
+      updatedPlaceIdPerLabelDataClass[key] = [newPlaceId];
+    });
+  }
+
+  return [linkBindingPerPlace, updatedPlaceIdPerLabelDataClass];
 }
 
 function tokensEqual(tokenA: TokenValue, tokenB: TokenValue): boolean {
@@ -461,17 +455,16 @@ export function getValidInputBindings(transition: Transition): OutputBinding[] {
 
   // If no incoming arcs, transition is always enabled
   if (transition.incoming.length === 0) {
-    console.log("Early return: no incoming arcs");
     return [[]]; // For consistency, return array with one empty binding
   }
 
+  // Early return: unbound output variables
   if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
-    console.log("Early return: unbound output variables");
     return [];
   }
 
+  // Early return: mismatched variable types
   if (hasMismatchedVariableTypes(transition.incoming, transition.outgoing)) {
-    console.log("Early return: mismatched variable types");
     return [];
   }
 
@@ -480,9 +473,8 @@ export function getValidInputBindings(transition: Transition): OutputBinding[] {
   );
   console.log("ArcPlaceInfoDict:", arcPlaceInfoDict);
 
-  // For each arcPlaceInfo, check if there are tokens available, otherwise return no bindings
+  // Early return: missing tokens in non-inhibitor arcs
   if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
-    console.log("Early return: missing tokens in non-inhibitor arcs");
     return [];
   }
 
@@ -490,6 +482,7 @@ export function getValidInputBindings(transition: Transition): OutputBinding[] {
   // console.log("Inhibitor tokens:", inhibitorTokens);
 
   // Step 1: get all link tokens
+  const biggestLinks = getBiggestLinks(arcPlaceInfoDict);
   const linkTokenPerPlace: LinkTokenPerPlace = getAllLinkToken(arcPlaceInfoDict);
   const placeIdPerLabelDataClass = getPlaceIdPerLabelDataClass(arcPlaceInfoDict);
   console.log("Link tokens per place:", linkTokenPerPlace);
@@ -512,6 +505,7 @@ export function getValidInputBindings(transition: Transition): OutputBinding[] {
     jointSingleBindingCandidates,
     linkTokenPerPlace,
     placeIdPerLabelDataClass,
+    biggestLinks,
     arcPlaceInfoDict,
   );
   console.log("Linked binding candidates:", linkedBindingCandidates);
@@ -524,6 +518,8 @@ export function getValidInputBindings(transition: Transition): OutputBinding[] {
   console.log("Final binding candidates:", finalBindingCandidates);
 
   // Step 6: return bindings as OutputToken
+
+  // TODO: introduce dependency from potential variable link bindings to non-linking variable bindings
   const outputBindings = createOutputBindings(finalBindingCandidates);
   console.log("Output bindings:", outputBindings);
   return outputBindings;
