@@ -477,19 +477,18 @@ export function getValidInputBindings(transition: Transition): OutputBinding[] {
   if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
     return [];
   }
-
+  
+  // Step 1: eliminate tokens blocked by inhibitors
+  // TODO: now we should only remain with an arcPlaceInfoDict where tokens blocked by inhibitors are removed
+  // Thus all remaining tokens are candidates for the respective arc
   // const inhibitorTokens = getInhibitorTokens(arcPlaceInfoDict);
   // console.log("Inhibitor tokens:", inhibitorTokens);
 
-  // Step 1: get all link tokens
+  // Step 2: get all link tokens
   const biggestLinks = getBiggestLinks(arcPlaceInfoDict);
   const linkTokenPerPlace: LinkTokenPerPlace = getAllLinkToken(arcPlaceInfoDict);
   const placeIdPerLabelDataClass = getPlaceIdPerLabelDataClass(arcPlaceInfoDict);
   console.log("Link tokens per place:", linkTokenPerPlace);
-
-  // Step 2: eliminate tokens blocked by inhibitors
-  // TODO: now we should only remain with an arcPlaceInfoDict where tokens blocked by inhibitors are removed
-  // Thus all remaining tokens are candidates for the respective arc
 
   // Step 3: compute arc-based cartesian product of all tokens of non-inhibitor, non-variable, non-linking arcs
   const singleBindingCandidates: Binding = [];
