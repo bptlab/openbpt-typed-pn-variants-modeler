@@ -1,14 +1,19 @@
+import { link } from "fs";
+import { get } from "http";
+
 // Token: An Array of TokenValue representing one token
 type Token = TokenValue[];
 
 // Binding: An Array of Token[] representing one possible binding
 // Token[]: all possible token per arc, which are later choosable
 type Binding = Token[][];
-// type Binding = { [label: string]: string[] };
 
 // Link: An array of id-label-pairs representing a link
-type Link = DataClass[];
+// type Link = DataClass[];
 
+type LinkToken = {variableType: DataClass | undefined; values: Token};
+
+type LinkTokenPerPlace = { [placeId: string]: LinkToken[] };
 
 // OutputToken: A mapping from dataClass label to value that is used by FireTransitionHandler
 type OutputToken = { [label: string]: string };
@@ -83,7 +88,7 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
     if (dataClass?.id && dataClassInfo) {
       if (arc.businessObject.variableType === dataClass) {
         dataClassInfo.isVariable = true;
-        variableClass = {id: dataClass.id, label: dataClass.label};
+        variableClass = {id: dataClass.id, label: dataClass.alias}; // this alias is something we need, which is not represented in modelSchemaTypes.ts
       }
       dataClassInfo.label = element.variableName;
     }
@@ -121,7 +126,7 @@ function hasUnboundOutputVariables(
       .flatMap(
         (arc: Arc) => arc.businessObject.inscription?.inscriptionElements || [],
       )
-      .map((el: any) => el.variableName),
+      .map((el: any) => el.variableName), // el should be InscriptionElement[]/Inscription
   );
 
   return outgoingArcs
@@ -130,7 +135,7 @@ function hasUnboundOutputVariables(
       const inscriptionElements =
         arc.businessObject.inscription?.inscriptionElements || [];
       return inscriptionElements.some(
-        (el: InscriptionElement) =>
+        (el: any) => // el should be InscriptionElement
           !el.isGenerated && !inputVariableNames.has(el.variableName),
       );
     });
@@ -159,7 +164,7 @@ function buildDataclassNameDictionary(arcs: Arc[]) {
     // early return if missing info
     if (!dataClassId || !inscriptionElements) return dict;
     // add variable name to set for this dataClassId
-    const varName: string = inscriptionElements.find(elem => elem.dataClass.id === dataClassId)?.variableName ?? "";
+    const varName: string = inscriptionElements.find((elem: any) => elem.dataClass.id === dataClassId)?.variableName ?? "";
     if (!dict[dataClassId]) dict[dataClassId] = new Set<string>();
     dict[dataClassId].add(varName);
 
@@ -207,71 +212,46 @@ function getInhibitorTokens(
   return inhibitorTokens;
 }
 
-function getBiggestLinks(
+function getAllLinkToken(
   arcPlaceInfoDict: ArcPlaceInfoDict,
-): Link[] {
-  const allLinks: Link[] = getAllUniqueLinks(arcPlaceInfoDict);
-
-  // Helper to check if linkA is a subset of linkB
-  function linkIsSubset(linkA: Link, linkB: Link): boolean {
-    const bSet = new Set(linkB.map(l => `${l.id}:${l.label}`));
-    return linkA.every(l => bSet.has(`${l.id}:${l.label}`));
-  }
-  // Filter out links that are a subset of another link
-  const biggestLinks = allLinks.filter((link, idx, arr) =>
-    !arr.some((other, otherIdx) =>
-      otherIdx !== idx && linkIsSubset(link, other) && other.length > link.length
-    )
-  );
-
-  return biggestLinks;
-}
-
-function getAllUniqueLinks(
-  arcPlaceInfoDict: ArcPlaceInfoDict,
-): Link[] {
-  const allLinks: Link[] = [];
+): LinkTokenPerPlace {
+  const linkTokenPerPlace: LinkTokenPerPlace = {};
 
   for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
     if (!arcPlaceInfo.isLinkingPlace) continue;
 
-    const link: Link = [];
-    for (const [dataClassId, dataClassInfo] of Object.entries(
-      arcPlaceInfo.dataClassInfoDict,
-    )) {
-      if (dataClassInfo.label) {
-        link.push({ id: dataClassId, label: dataClassInfo.label });
-      }
+    const linkTokens: LinkToken[] = [];
+    for (const token of arcPlaceInfo.tokens) {
+      linkTokens.push({
+      variableType: arcPlaceInfo.variableClass,
+      values: token,
+      });
     }
 
-    allLinks.push(link);
+    linkTokenPerPlace[arcPlaceInfo.placeId] = linkTokens;
   }
 
-  const deduplicatedLinks = deduplicateLinks(allLinks);
-
-  return deduplicatedLinks;
+  return linkTokenPerPlace;
 }
 
-function deduplicateLinks(links: Link[]): Link[] {
-  const uniqueLinks: Link[] = [];
-  // Helper to compare two links for set equality (order-insensitive)
-  function linksAreEqual(linkA: Link, linkB: Link): boolean {
-    if (linkA.length !== linkB.length) return false;
-    const aSet = new Set(linkA.map(l => `${l.id}:${l.label}`));
-    const bSet = new Set(linkB.map(l => `${l.id}:${l.label}`));
-    if (aSet.size !== bSet.size) return false;
-    for (const item of aSet) {
-      if (!bSet.has(item)) return false;
-    }
-    return true;
-  }
-  // Remove duplicates (order-insensitive)
-  for (const link of links) {
-    if (!uniqueLinks.some(existing => linksAreEqual(existing, link))) {
-      uniqueLinks.push(link);
+function getPlaceIdPerLabelDataClass(
+  arcPlaceInfoDict: ArcPlaceInfoDict,
+): { [key: string]: string[] } {
+  const placeIdPerLabelDataClass: { [key: string]: string[] } = {};
+  for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
+    if (arcPlaceInfo.isLinkingPlace) {
+      const linkId = arcPlaceInfo.placeId;
+      // Build a mapping from label and dataClassId to linkId
+      for (const [dataClassId, dataClassInfo] of Object.entries(arcPlaceInfo.dataClassInfoDict)) {
+        const key = `${dataClassInfo.label}::${dataClassId}`;
+        if (!placeIdPerLabelDataClass[key]) {
+          placeIdPerLabelDataClass[key] = [];
+        }
+        placeIdPerLabelDataClass[key].push(linkId);
+      }
     }
   }
-  return uniqueLinks;
+  return placeIdPerLabelDataClass;
 }
 
 function cartesianProduct(arrays: Binding): Binding[] {
@@ -302,80 +282,84 @@ function cartesianProduct(arrays: Binding): Binding[] {
 
 function getLinkedBindingCandidates(
   jointSingleBindingCandidates: Binding[],
-  links: Link[],
+  linkTokenPerPlace: LinkTokenPerPlace,
+  placeIdPerLabelDataClass: { [key: string]: string[] },
   arcPlaceInfoDict: ArcPlaceInfoDict,
 ): Binding[] {
-  if (links.length === 0) {
+  if (Object.keys(linkTokenPerPlace).length === 0) {
     return jointSingleBindingCandidates;
   }
 
   const linkedBindingCandidates: Binding[] = [];
   
   if (jointSingleBindingCandidates.length > 0) {
-    if (links.length > 1) {
+    if (Object.keys(linkTokenPerPlace).length > 1) {
       console.warn("Multiple links are not yet fully supported.");
-      // TODO: Link links first
+      // TODO: Check that all linkTokenPerPlace are exclusive in terms of dataClasses used
+      // if not, create new linkToken combinations that satisfy all linkTokenPerPlace simultaneously
     }
-
-    // gather all link tokens from arcPlaceInfoDict
-    const linkTokensDict: { [linkId: string]: Token[] } = {};
-    const linkLabelDataClassToLinkId: { [key: string]: string[] } = {};
-    for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
-      if (arcPlaceInfo.isLinkingPlace) {
-        const linkId = arcPlaceInfo.arcId;
-        linkTokensDict[linkId] = arcPlaceInfo.tokens;
-        // Build a mapping from label and dataClassId to linkId
-        for (const [dataClassId, dataClassInfo] of Object.entries(arcPlaceInfo.dataClassInfoDict)) {
-          const key = `${dataClassInfo.label}::${dataClassId}`;
-          if (!linkLabelDataClassToLinkId[key]) {
-            linkLabelDataClassToLinkId[key] = [];
-          }
-          linkLabelDataClassToLinkId[key].push(linkId);
-        }
-      }
-    }
-
 
     // For each joint binding candidate, check if any link token matches. 
     // If so, keep the binding candidate and extend it with the link token.
     for (const bindingCandidate of jointSingleBindingCandidates) {
-      const interestingLinkTokens: Set<Token> = new Set();
+      
+      const interestingLinkTokenPerPlace: LinkTokenPerPlace = {};
       for (const arc of bindingCandidate) {
         for (const token of arc) {
           for (const tokenValue of token) {
             const key = `${tokenValue.dataClass.label}::${tokenValue.dataClass.id}`;
-            (linkLabelDataClassToLinkId[key] ?? []).forEach(linkId => {
-              linkTokensDict[linkId].forEach(linkToken => {
-                interestingLinkTokens.add(linkToken);
-              });
+            (placeIdPerLabelDataClass[key] ?? []).forEach(placeId => {
+              if (linkTokenPerPlace[placeId]) {
+                interestingLinkTokenPerPlace[placeId] = linkTokenPerPlace[placeId];
+              }
             });
           }
         }
       }
-      console.log("Binding Candidate:", bindingCandidate, "Interesting link tokens for binding candidate:", interestingLinkTokens);
-      for (const linkToken of interestingLinkTokens) {
-        // Check if linkToken matches bindingCandidate
-        let matches = true;
-        for (const tokenValue of linkToken) {
-          let tokenValueMatches = false;
+
+      console.log("Binding Candidate:", bindingCandidate, "Interesting link tokens for binding candidate:", interestingLinkTokenPerPlace);
+      
+      for (const placeId in interestingLinkTokenPerPlace) {
+        const linkTokensToAdd: Token[] = [];
+        for (const linkToken of interestingLinkTokenPerPlace[placeId]) {
+
+          // Check if linkToken contains all token values from bindingCandidate
+          // Get unique token values from bindingCandidate
+          const bindingTokenValues = new Set<string>();
           for (const arc of bindingCandidate) {
             for (const token of arc) {
-              if (token.some(tv => tv.dataClass.id === tokenValue.dataClass.id && tv.value === tokenValue.value)) {
-                tokenValueMatches = true;
-                break;
+              for (const tv of token) {
+                bindingTokenValues.add(`${tv.dataClass.id}::${tv.dataClass.label}::${tv.value}`);
               }
             }
-            if (tokenValueMatches) break;
           }
-          if (!tokenValueMatches) {
-            matches = false;
-            break;
+
+          // Check if all bindingTokenValues are represented in linkToken
+          let allTokensRepresented = true;
+          for (const item of bindingTokenValues) {
+            if (!linkToken.values.some(tv => `${tv.dataClass.id}::${tv.dataClass.label}::${tv.value}` === item)) {
+              allTokensRepresented = false;
+              break;
+            }
+          }
+
+          // If all tokens are represented, we can add the linkToken to the binding candidate (depending on variableType)
+          if (allTokensRepresented) {
+            if (linkToken.variableType) {
+              linkTokensToAdd.push(linkToken.values);
+            }
+            else {
+              // Not variable: Create new binding candidate extended with only one linkToken
+              const newBindingCandidate: Binding = bindingCandidate.map(arc => arc.slice());
+              newBindingCandidate.push([linkToken.values]);
+              linkedBindingCandidates.push(newBindingCandidate);
+            }
           }
         }
-        if (matches) {
-          // Create new binding candidate extended with linkToken
+        if (linkTokensToAdd.length > 0) {
+          // Variable: Create new binding candidate extended with all linkTokensToAdd
           const newBindingCandidate: Binding = bindingCandidate.map(arc => arc.slice());
-          newBindingCandidate.push([linkToken]);
+          newBindingCandidate.push(linkTokensToAdd);
           linkedBindingCandidates.push(newBindingCandidate);
         }
       }
@@ -430,20 +414,47 @@ function createOutputBindings(
   return outputBindings;
 }
 
-// function buildTokenFromTokenValue(
-//   token: Token,
-//   dataClassInfoDict: { [dataClassId: string]: DataClassInfo },
-// ): Token {
-//   const tokenObj: Token = {} as Token;
-//   for (const [dataClassId, dataClassInfo] of Object.entries(
-//     dataClassInfoDict,
-//   )) {
-//     if (dataClassInfo.label && token.values.dataClass.id === dataClassId) {
-//       tokenObj[dataClassInfo.label] = token.value;
-//     }
-//   }
-//   return tokenObj;
-// }
+function getFinalBindingCandidates(
+  linkedBindingCandidates: Binding[],
+  arcPlaceInfoDict: ArcPlaceInfoDict,
+): Binding[] {
+  const finalBindingCandidates: Binding[] = [];
+
+  for (const bindingCandidate of linkedBindingCandidates) {
+    const extendedBindingCandidate: Binding = bindingCandidate.map(arc => arc.slice());
+
+    // For each arcPlaceInfo, check if variableClass is defined and not linking place
+    for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
+      if (arcPlaceInfo.isInhibitorArc || arcPlaceInfo.isLinkingPlace || !arcPlaceInfo.variableClass) continue;
+
+      // Get all tokens from arcPlaceInfo that match the variableClass
+      const matchingTokens: Token[] = [];
+      for (const token of arcPlaceInfo.tokens) {
+        const allTokenValuesMatch = token.every(tv => 
+          bindingCandidate.some(arc => 
+            arc.some(candidateToken => 
+              candidateToken.some(candidateTokenValue =>
+                candidateTokenValue.dataClass.id === tv.dataClass.id &&
+                candidateTokenValue.dataClass.label === tv.dataClass.label &&
+                candidateTokenValue.value === tv.value
+              )
+            )
+          )
+        );
+        if (allTokenValuesMatch) {
+          matchingTokens.push(token);
+        }
+      }
+
+      // Extend the binding candidate with the matching tokens
+      extendedBindingCandidate.push(matchingTokens);
+    }
+
+    finalBindingCandidates.push(extendedBindingCandidate);
+  }
+
+  return finalBindingCandidates;
+}
 
 export function getValidInputBindings(transition: Transition): OutputBinding[] {
   console.log("Transition:", transition.id);
@@ -478,8 +489,10 @@ export function getValidInputBindings(transition: Transition): OutputBinding[] {
   // const inhibitorTokens = getInhibitorTokens(arcPlaceInfoDict);
   // console.log("Inhibitor tokens:", inhibitorTokens);
 
-  // Step 1: get all links
-  const links: Link[] = getAllUniqueLinks(arcPlaceInfoDict) // getBiggestLinks(arcPlaceInfoDict);
+  // Step 1: get all link tokens
+  const linkTokenPerPlace: LinkTokenPerPlace = getAllLinkToken(arcPlaceInfoDict);
+  const placeIdPerLabelDataClass = getPlaceIdPerLabelDataClass(arcPlaceInfoDict);
+  console.log("Link tokens per place:", linkTokenPerPlace);
 
   // Step 2: eliminate tokens blocked by inhibitors
   // TODO: now we should only remain with an arcPlaceInfoDict where tokens blocked by inhibitors are removed
@@ -497,16 +510,21 @@ export function getValidInputBindings(transition: Transition): OutputBinding[] {
   // Step 4: delete bindings that do not satisfy links and join remaining bindings with link token
   const linkedBindingCandidates = getLinkedBindingCandidates(
     jointSingleBindingCandidates,
-    links,
+    linkTokenPerPlace,
+    placeIdPerLabelDataClass,
     arcPlaceInfoDict,
   );
   console.log("Linked binding candidates:", linkedBindingCandidates);
   
-  // Step 5: extend bindings with variable arcs 
-
+  // Step 5: extend bindings with non-linking variable arcs 
+  const finalBindingCandidates = getFinalBindingCandidates(
+    linkedBindingCandidates,
+    arcPlaceInfoDict,
+  );
+  console.log("Final binding candidates:", finalBindingCandidates);
 
   // Step 6: return bindings as OutputToken
-  const outputBindings = createOutputBindings(linkedBindingCandidates);
+  const outputBindings = createOutputBindings(finalBindingCandidates);
   console.log("Output bindings:", outputBindings);
   return outputBindings;
 

@@ -28,7 +28,7 @@ interface Arc extends ModelElement {
     target: Node;
     isInhibitorArc?: boolean;
     variableType?: DataClass;
-    inscription: Inscription | null; // TODO: check if can be null
+    inscription: any | null; // TODO: check if can be null
   };
 }
 
@@ -36,12 +36,12 @@ interface DataClass extends ModelElement {
   label: string;
 }
 
-interface Inscription {
-  inscriptionElements: Array<InscriptionElement>;
-}
+// interface Inscription {
+//   inscriptionElements: Array<InscriptionElement>;
+// }
 
-interface InscriptionElement {
-  dataClass: DataClass;
-  variableName: string;
-  isGenerated: boolean;
-}
+// interface InscriptionElement {
+//   dataClass: DataClass;
+//   variableName: string;
+//   isGenerated: boolean;
+// }
