@@ -1,216 +1,7 @@
-import { getBiggestLinks } from "./bindingUtilsHelpers";
+import { buildArcPlaceInfoDict } from "./bindingUtilsArcPlaceInfoLogic";
+import { hasAvailableTokensForAllArcs, hasMismatchedVariableTypes, hasUnboundOutputVariables } from "./bindingUtilsEarlyReturnLogic";
+import { getAllLinkToken, getBiggestLinks } from "./bindingUtilsLinkingLogic";
 
-
-// ArcBindingCandidates: All possible bindings for one arc
-// type ArcBindingCandidates = Binding[];
-
-// ValidBindings: All valid complete bindings for a transition
-// (chooses one binding from each ArcBindingsCandidates per arc)
-// type ValidBindings = Binding[];
-
-function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
-  const place: Place = arc.businessObject.source as Place;
-  const isInhibitorArc: boolean = arc.businessObject.isInhibitorArc || false;
-
-  const dataClassInfoDict: {
-    [dataClassId: string]: DataClassInfo;
-  } = {};
-
-  const marking = place.marking ?? [];
-
-  for (const token of marking) {
-    const tokenValues = token.values ?? [];
-    for (const { dataClass, value } of tokenValues) {
-      if (!dataClass) continue;
-
-      if (!dataClassInfoDict[dataClass.id]) {
-        dataClassInfoDict[dataClass.id] = {
-          isVariable: false,
-          label: "",
-          tokenValues: [],
-        };
-      }
-
-      if (!dataClassInfoDict[dataClass.id].tokenValues.includes(value)) {
-        dataClassInfoDict[dataClass.id].tokenValues.push(value);
-      }
-    }
-  }
-
-  let variableClass: DataClass | undefined = undefined;
-  const inscriptionElements =
-    arc.businessObject.inscription?.inscriptionElements ?? [];
-  for (const element of inscriptionElements) {
-    const dataClass = element.dataClass;
-    const dataClassInfo = dataClassInfoDict[dataClass.id];
-    if (dataClass?.id && dataClassInfo) {
-      if (arc.businessObject.variableType === dataClass) {
-        dataClassInfo.isVariable = true;
-        variableClass = {id: dataClass.id, label: dataClass.alias}; // this alias is something we need, which is not represented in modelSchemaTypes.ts
-      }
-      dataClassInfo.label = element.variableName;
-    }
-  }
-
-  const customMarking: Token[] = [];
-  for (const token of marking) {
-    const tokenObj: Token = [];
-    const tokenValues = token.values ?? [];
-    for (const { dataClass, value } of tokenValues) {
-      tokenObj.push({ dataClass: {label: dataClass.alias, id: dataClass.id}, value: value });
-    }
-    customMarking.push(tokenObj);
-  }
-
-  return {
-    arcId: arc.id,
-    placeId: place.id,
-    tokens: customMarking,
-    isInhibitorArc,
-    isLinkingPlace: Object.keys(dataClassInfoDict).length > 1,
-    variableClass,
-    dataClassInfoDict,
-  };
-}
-
-// Returns true if any output arc has a non-generated variable that was not defined in the input arcs
-function hasUnboundOutputVariables(
-  incomingArcs: Arc[],
-  outgoingArcs: Arc[],
-): boolean {
-  const inputVariableNames = new Set<string>(
-    incomingArcs
-      .filter((arc) => !arc.businessObject.isInhibitorArc) // exclude inhibitor arcs
-      .flatMap(
-        (arc: Arc) => arc.businessObject.inscription?.inscriptionElements || [],
-      )
-      .map((el: any) => el.variableName), // el should be InscriptionElement[]/Inscription
-  );
-
-  return outgoingArcs
-    .filter((arc) => !arc.businessObject.isInhibitorArc)
-    .some((arc) => {
-      const inscriptionElements =
-        arc.businessObject.inscription?.inscriptionElements || [];
-      return inscriptionElements.some(
-        (el: any) => // el should be InscriptionElement
-          !el.isGenerated && !inputVariableNames.has(el.variableName),
-      );
-    });
-}
-
-function hasMismatchedVariableTypes(
-  incomingArcs: Arc[],
-  outgoingArcs: Arc[],
-): boolean {
-  if (incomingArcs.length > 0 && outgoingArcs.length > 0) {
-      const incomingDataclassNameDict = buildDataclassNameDictionary(incomingArcs);
-      const outgoingDataclassNameDict = buildDataclassNameDictionary(outgoingArcs);
-      // check that variable incoming and outgoing arcs match
-      if (isMismatch(incomingDataclassNameDict, outgoingDataclassNameDict)) {
-        return true;
-      }  
-    }
-    
-  return false;
-}
-
-function buildDataclassNameDictionary(arcs: Arc[]) {
-  return arcs.reduce((dict: { [dataClassId: string]: Set<string> }, arc) => {
-    const dataClassId = arc.businessObject?.variableType?.id;
-    const inscriptionElements = arc.businessObject?.inscription?.inscriptionElements;
-    // early return if missing info
-    if (!dataClassId || !inscriptionElements) return dict;
-    // add variable name to set for this dataClassId
-    const varName: string = inscriptionElements.find((elem: any) => elem.dataClass.id === dataClassId)?.variableName ?? "";
-    if (!dict[dataClassId]) dict[dataClassId] = new Set<string>();
-    dict[dataClassId].add(varName);
-
-    return dict;
-  }, {} as { [dataClassId: string]: Set<string> });
-}
-
-function isMismatch(dict1: { [key: string]: Set<string> }, dict2: { [key: string]: Set<string> }) {
-  const keys1 = Object.keys(dict1);
-  const keys2 = Object.keys(dict2);
-
-  if (keys1.length !== keys2.length) return true;
-  if (!keys1.every(key => keys2.includes(key))) return true;
-
-  for (const key of keys1) {
-    const val1 = [...dict1[key]];
-    const val2 = [...dict2[key]];
-    if (val1.length !== val2.length) return true;
-    if (!val1.every(element => val2.includes(element))) return true;
-  }
-  return false;
-}
-
-// Check if all non-inhibitor arcs have at least one available token
-function hasAvailableTokensForAllArcs(
-  arcPlaceInfoDict: ArcPlaceInfoDict,
-): boolean {
-  return Object.values(arcPlaceInfoDict).every(
-    (arcPlaceInfo) =>
-      arcPlaceInfo.isInhibitorArc || arcPlaceInfo.tokens.length > 0,
-  );
-}
-
-function getInhibitorTokens(
-  arcPlaceInfoDict: ArcPlaceInfoDict,
-): Token[] {
-  const inhibitorTokens: Token[] = [];
-
-  for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
-    if (!arcPlaceInfo.isInhibitorArc) continue;
-
-    inhibitorTokens.push(...arcPlaceInfo.tokens);
-  }
-
-  return inhibitorTokens;
-}
-
-function getAllLinkToken(
-  arcPlaceInfoDict: ArcPlaceInfoDict,
-): LinkTokenPerPlace {
-  const linkTokenPerPlace: LinkTokenPerPlace = {};
-
-  for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
-    if (!arcPlaceInfo.isLinkingPlace) continue;
-
-    const linkTokens: LinkToken[] = [];
-    for (const token of arcPlaceInfo.tokens) {
-      linkTokens.push({
-      variableType: arcPlaceInfo.variableClass,
-      values: token,
-      });
-    }
-
-    linkTokenPerPlace[arcPlaceInfo.placeId] = linkTokens;
-  }
-
-  return linkTokenPerPlace;
-}
-
-function getPlaceIdPerLabelDataClass(
-  arcPlaceInfoDict: ArcPlaceInfoDict,
-): { [key: string]: string[] } {
-  const placeIdPerLabelDataClass: { [key: string]: string[] } = {};
-  for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
-    if (arcPlaceInfo.isLinkingPlace) {
-      const linkId = arcPlaceInfo.placeId;
-      // Build a mapping from label and dataClassId to linkId
-      for (const [dataClassId, dataClassInfo] of Object.entries(arcPlaceInfo.dataClassInfoDict)) {
-        const key = `${dataClassInfo.label}::${dataClassId}`;
-        if (!placeIdPerLabelDataClass[key]) {
-          placeIdPerLabelDataClass[key] = [];
-        }
-        placeIdPerLabelDataClass[key].push(linkId);
-      }
-    }
-  }
-  return placeIdPerLabelDataClass;
-}
 
 function cartesianProduct(arrays: Binding): Binding[] {
   // We want the cartesian product to return an array of arrays of Token,
@@ -274,7 +65,7 @@ function getLinkedBindingCandidates(
       for (const arc of bindingCandidate) {
         for (const token of arc) {
           for (const tokenValue of token) {
-            const key = `${tokenValue.dataClass.label}::${tokenValue.dataClass.id}`;
+            const key = `${tokenValue.dataClass.alias}::${tokenValue.dataClass.id}`;
             (placeIdPerLabelDataClass[key] ?? []).forEach(placeId => {
               if (linkTokenPerPlace[placeId]) {
                 interestingLinkTokenPerPlace[placeId] = linkTokenPerPlace[placeId];
@@ -296,7 +87,7 @@ function getLinkedBindingCandidates(
           for (const arc of bindingCandidate) {
             for (const token of arc) {
               for (const tv of token) {
-                bindingTokenValues.add(`${tv.dataClass.id}::${tv.dataClass.label}::${tv.value}`);
+                bindingTokenValues.add(`${tv.dataClass.id}::${tv.dataClass.alias}::${tv.value}`);
               }
             }
           }
@@ -304,7 +95,7 @@ function getLinkedBindingCandidates(
           // Check if all bindingTokenValues are represented in linkToken
           let allTokensRepresented = true;
           for (const item of bindingTokenValues) {
-            if (!linkToken.values.some(tv => `${tv.dataClass.id}::${tv.dataClass.label}::${tv.value}` === item)) {
+            if (!linkToken.token.some(tv => `${tv.dataClass.id}::${tv.dataClass.alias}::${tv.value}` === item)) {
               allTokensRepresented = false;
               break;
             }
@@ -313,12 +104,12 @@ function getLinkedBindingCandidates(
           // If all tokens are represented, we can add the linkToken to the binding candidate (depending on variableType)
           if (allTokensRepresented) {
             if (linkToken.variableType) {
-              linkTokensToAdd.push(linkToken.values);
+              linkTokensToAdd.push(linkToken.token);
             }
             else {
               // Not variable: Create new binding candidate extended with only one linkToken
               const newBindingCandidate: Binding = bindingCandidate.map(arc => arc.slice());
-              newBindingCandidate.push([linkToken.values]);
+              newBindingCandidate.push([linkToken.token]);
               linkedBindingCandidates.push(newBindingCandidate);
             }
           }
@@ -346,7 +137,7 @@ function createLinkBindingPerPlace(
 
   for (const link of biggestLinks) {
     // Find all placeIds for this link
-    const labelIdKeys = link.map(l => `${l.label}::${l.id}`);
+    const labelIdKeys = link.map(l => `${l.alias}::${l.id}`);
 
     const placeIds = new Set(
       labelIdKeys
@@ -358,7 +149,7 @@ function createLinkBindingPerPlace(
     // TODO: implement joinLinkTokens
     // const joinedLinkTokens = joinLinkTokens(tokenToJoin); 
 
-    const newPlaceId = link.map(l => `${l.id}:${l.label}`).join("::");
+    const newPlaceId = link.map(l => `${l.id}:${l.alias}`).join("::");
     // linkBindingPerPlace[newPlaceId] = joinedLinkTokens;
 
     labelIdKeys.forEach(key => {
@@ -369,20 +160,7 @@ function createLinkBindingPerPlace(
   return [linkBindingPerPlace, updatedPlaceIdPerLabelDataClass];
 }
 
-function tokensEqual(tokenA: TokenValue, tokenB: TokenValue): boolean {
-  return (
-    tokenA.dataClass.id === tokenB.dataClass.id && tokenA.value === tokenB.value
-  );
-}
 
-function isTokenBlockedByInhibitor(
-  token: TokenValue,
-  inhibitorTokens: TokenValue[],
-): boolean {
-  return inhibitorTokens.some((inhibitorToken) =>
-    tokensEqual(token, inhibitorToken),
-  );
-}
 
 function createOutputBindings(
   outputBindingCandidates: Binding[],
@@ -396,7 +174,7 @@ function createOutputBindings(
       for (const token of tokenArray) {
         const outputToken: OutputToken = {};
         for (const tokenValue of token) {
-          outputToken[tokenValue.dataClass.label] = tokenValue.value;
+          outputToken[tokenValue.dataClass.alias] = tokenValue.value;
         }
         outputTokenArray.push(outputToken);
       }
@@ -429,7 +207,7 @@ function getFinalBindingCandidates(
             arc.some(candidateToken => 
               candidateToken.some(candidateTokenValue =>
                 candidateTokenValue.dataClass.id === tv.dataClass.id &&
-                candidateTokenValue.dataClass.label === tv.dataClass.label &&
+                candidateTokenValue.dataClass.alias === tv.dataClass.alias &&
                 candidateTokenValue.value === tv.value
               )
             )
@@ -452,121 +230,96 @@ function getFinalBindingCandidates(
 
 export function getValidInputBindings(transition: Transition): OutputBinding[] {
   console.log("Transition:", transition.id);
-
+  
+  // Early return: unbound output variables
+  if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
+    console.log("Transition has unbound output variables.");
+    return [];
+  }
+  
+  // Early return: mismatched variable types
+  if (hasMismatchedVariableTypes(transition.incoming, transition.outgoing)) {
+    console.log("Transition has mismatched variable types.");
+    return [];
+  }
+  
   // If no incoming arcs, transition is always enabled
   if (transition.incoming.length === 0) {
     return [[]]; // For consistency, return array with one empty binding
   }
 
-  // Early return: unbound output variables
-  if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
-    return [];
-  }
-
-  // Early return: mismatched variable types
-  if (hasMismatchedVariableTypes(transition.incoming, transition.outgoing)) {
-    return [];
-  }
-
-  const arcPlaceInfoDict: ArcPlaceInfoDict = Object.fromEntries(
-    transition.incoming.map((arc) => [arc.id, buildArcPlaceInfo(arc)]),
-  );
-  console.log("ArcPlaceInfoDict:", arcPlaceInfoDict);
-
+  // Step 1: build ArcPlaceInfoDict in a way to merge arcs with same dataClassInfoDict
+  const [arcPlaceInfoDict, tokenStructure] = buildArcPlaceInfoDict(transition.incoming);
+  
   // Early return: missing tokens in non-inhibitor arcs
   if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
     return [];
   }
   
-  // Step 1: eliminate tokens blocked by inhibitors
+  // Step 2: get biggest exclusive links, link tokens per place, placeId per dataClass alias
+  const biggestLinks = getBiggestLinks(arcPlaceInfoDict);
+  const [linkTokenPerPlace, placeIdPerDataClassAlias] = getAllLinkToken(arcPlaceInfoDict);
+  
+  if (biggestLinks.length == 0) {
+    // Step 3.1: no links, simply return all tokenValues per DataClass (together with TokenStructure)
+  }
+  else {
+    // Step 3.2: links exist, return only bindings that satisfy the links (together with TokenStructure)
+  }
+  
+  console.log("ArcPlaceInfoDict:", arcPlaceInfoDict);
+  console.log("TokenStructure:", tokenStructure);
+  
+  return [[[{"I": "Item_1"}],[{"P": "Package_1"}, {"P": "Package_3"}],[{"O": "Order_1"}]]]; // TODO: remove, only for testing
+
+  // Step X: eliminate tokens blocked by inhibitors
   // TODO: now we should only remain with an arcPlaceInfoDict where tokens blocked by inhibitors are removed
   // Thus all remaining tokens are candidates for the respective arc
   // const inhibitorTokens = getInhibitorTokens(arcPlaceInfoDict);
   // console.log("Inhibitor tokens:", inhibitorTokens);
-
-  // Step 2: get all link tokens
-  const biggestLinks = getBiggestLinks(arcPlaceInfoDict);
-  const linkTokenPerPlace: LinkTokenPerPlace = getAllLinkToken(arcPlaceInfoDict);
-  const placeIdPerLabelDataClass = getPlaceIdPerLabelDataClass(arcPlaceInfoDict);
-  console.log("Link tokens per place:", linkTokenPerPlace);
-
-  // Step 3: compute arc-based cartesian product of all tokens of non-inhibitor, non-variable, non-linking arcs
-  const singleBindingCandidates: Binding = [];
-  for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
-    if (arcPlaceInfo.isInhibitorArc || arcPlaceInfo.variableClass || arcPlaceInfo.isLinkingPlace) continue;
-    singleBindingCandidates.push(arcPlaceInfo.tokens);
-  }
-  const jointSingleBindingCandidates = cartesianProduct(singleBindingCandidates);
-  console.log("Joint single binding candidates:", jointSingleBindingCandidates);
-  
-  // Step 4: delete bindings that do not satisfy links and join remaining bindings with link token
-  const linkedBindingCandidates = getLinkedBindingCandidates(
-    jointSingleBindingCandidates,
-    linkTokenPerPlace,
-    placeIdPerLabelDataClass,
-    biggestLinks,
-    arcPlaceInfoDict,
-  );
-  console.log("Linked binding candidates:", linkedBindingCandidates);
-  
-  // Step 5: extend bindings with non-linking variable arcs 
-  const finalBindingCandidates = getFinalBindingCandidates(
-    linkedBindingCandidates,
-    arcPlaceInfoDict,
-  );
-  console.log("Final binding candidates:", finalBindingCandidates);
-
-  // Step 6: return bindings as OutputToken
-
-  // TODO: introduce dependency from potential variable link bindings to non-linking variable bindings
-  const outputBindings = createOutputBindings(finalBindingCandidates);
-  console.log("Output bindings:", outputBindings);
-  return outputBindings;
-
-
-  // Build binding candidates for each non-inhibitor arc
-  // const allArcBindingCandidates: ArcBindingCandidates[] = [];
-
-  // for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
-  //   if (arcPlaceInfo.isInhibitorArc) continue;
-
-  //   // More concise version than down below where we iterate over all tokens
-  //   // const bindingCandidates: ArcBindingCandidates = arcPlaceInfo.token
-  //   //   .filter((token) => !isTokenBlockedByInhibitor(token, inhibitorTokens)) // Skip tokens blocked by inhibitor arcs
-  //   //   .map((token) =>
-  //   //     buildBindingFromToken(token, arcPlaceInfo.dataClassInfoDict),
-  //   //   );
-
-  //   const bindingCandidates: ArcBindingCandidates = [];
-  //   for (const token of arcPlaceInfo.token) {
-  //     // Skip tokens blocked by inhibitor arcs
-  //     // TODO: In the discussed example it should print that token Item_1 and (Order_1, Item_1) are blocked by inhibitor token Item_1
-  //     // Currently only prints token Item_1 and Item_1
-  //     if (isTokenBlockedByInhibitor(token, inhibitorTokens)) {
-  //       console.log("Skipping token blocked by inhibitor arc:", token);
-  //       continue;
-  //     }
-
-  //     // Build binding from token
-  //     const binding: Binding = buildBindingFromToken(
-  //       token,
-  //       arcPlaceInfo.dataClassInfoDict,
-  //     );
-  //     bindingCandidates.push(binding);
-  //   } // End for token
-
-  //   if (bindingCandidates.length === 0) {
-  //     return [];
-  //   }
-
-  //   allArcBindingCandidates.push(bindingCandidates);
-  // } // End for arcPlaceInfo
-
-  // console.log("allArcBindingCandidates", allArcBindingCandidates);
-  //return jointSingleBindingCandidates // cartesianProduct(allArcBindingCandidates);
 }
 
 export function transitionIsEnabled(transition: Transition): boolean {
   const bindings = getValidInputBindings(transition);
   return !!bindings.length;
 }
+
+
+
+ // --------------------------------------------
+  // Legacy code for reference
+  // --------------------------------------------
+
+  // // Step 3: compute arc-based cartesian product of all tokens of non-inhibitor, non-variable, non-linking arcs
+  // const singleBindingCandidates: Binding = [];
+  // for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
+  //   if (arcPlaceInfo.isInhibitorArc || arcPlaceInfo.variableClass || arcPlaceInfo.isLinkingPlace) continue;
+  //   singleBindingCandidates.push(arcPlaceInfo.tokens);
+  // }
+  // const jointSingleBindingCandidates = cartesianProduct(singleBindingCandidates);
+  // console.log("Joint single binding candidates:", jointSingleBindingCandidates);
+  // // [[I1],[O1]], [[I2],[O1]], [[I1],[O2]], [[I2],[O2]]
+  
+  // // Step 4: delete bindings that do not satisfy links and join remaining bindings with link token
+  // const linkedBindingCandidates = getLinkedBindingCandidates(
+  //   jointSingleBindingCandidates,
+  //   linkTokenPerPlace, // I1,O1,C1, I2,O2,C1
+  //   placeIdPerDataClassAlias,
+  //   biggestLinks,
+  //   arcPlaceInfoDict,
+  // );
+  // console.log("Linked binding candidates:", linkedBindingCandidates); // [I1],[O1],[{I1,O1,C1}{I1,O1,C2}]
+  
+  // // Step 5: extend bindings with non-linking variable arcs 
+  // const finalBindingCandidates = getFinalBindingCandidates(
+  //   linkedBindingCandidates,
+  //   arcPlaceInfoDict,
+  // );
+  // console.log("Final binding candidates:", finalBindingCandidates); // [[{I: I1}],[{O:O1}}],[{I:I1,C:C1}{I:I1,C:C2}],[[C1,C2]]]
+  // // --> Binding: [[{I: I1}],[O1],[{I1,C1}{I1,C2}]] + Backlog token: [[C1,C2]]
+  // // TODO: introduce dependency from potential variable link bindings to non-linking variable bindings
+
+  // // Step 6: return bindings as OutputToken
+  // const outputBindings = createOutputBindings(finalBindingCandidates);
+  // console.log("Output bindings:", outputBindings);
+  // return outputBindings;
