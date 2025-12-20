@@ -3,7 +3,103 @@ import { hasAvailableTokensForAllArcs, hasMismatchedVariableTypes, hasUnboundOut
 import { getAllLinkToken, getBiggestLinks } from "./bindingUtilsLinkingLogic";
 
 
-function cartesianProduct(arrays: Binding): Binding[] {
+export function getValidInputBindings(transition: Transition): OutputBinding[] {
+  console.log("Transition:", transition.id);
+  
+  // Early return: unbound output variables
+  if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
+    console.log("Transition has unbound output variables.");
+    return [];
+  }
+  
+  // Early return: mismatched variable types
+  if (hasMismatchedVariableTypes(transition.incoming, transition.outgoing)) {
+    console.log("Transition has mismatched variable types.");
+    return [];
+  }
+  
+  // If no incoming arcs, transition is always enabled
+  if (transition.incoming.length === 0) {
+    return [[]]; // For consistency, return array with one empty binding
+  }
+
+  // Step 1: build ArcPlaceInfoDict in a way to merge arcs with same dataClassInfoDict
+  const [arcPlaceInfoDict, tokenStructure] = buildArcPlaceInfoDict(transition.incoming);
+  
+  // Early return: missing tokens in non-inhibitor arcs
+  if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
+    return [];
+  }
+  
+  // Step 2: get biggest exclusive links, link tokens per place, placeId per dataClass alias
+  const biggestLinks = getBiggestLinks(arcPlaceInfoDict);
+  const [linkTokenPerPlace, placeIdPerDataClassAlias] = getAllLinkToken(arcPlaceInfoDict);
+  
+  if (biggestLinks.length == 0) {
+    // Step 3.1: no links, simply return all tokenValues per DataClass (together with TokenStructure)
+  }
+  else {
+    // Step 3.2: links exist, return only bindings that satisfy the links (together with TokenStructure)
+  }
+  
+  console.log("ArcPlaceInfoDict:", arcPlaceInfoDict);
+  console.log("TokenStructure:", tokenStructure);
+  
+  return [[[{"I": "Item_1"}],[{"P": "Package_1"}, {"P": "Package_3"}],[{"O": "Order_1"}]]]; // TODO: remove, only for testing
+
+  // Step X: eliminate tokens blocked by inhibitors
+  // TODO: now we should only remain with an arcPlaceInfoDict where tokens blocked by inhibitors are removed
+  // Thus all remaining tokens are candidates for the respective arc
+  // const inhibitorTokens = getInhibitorTokens(arcPlaceInfoDict);
+  // console.log("Inhibitor tokens:", inhibitorTokens);
+}
+
+export function transitionIsEnabled(transition: Transition): boolean {
+  const bindings = getValidInputBindings(transition);
+  return !!bindings.length;
+}
+
+
+
+ // --------------------------------------------
+  // Legacy code for reference
+  // --------------------------------------------
+
+  // // Step 3: compute arc-based cartesian product of all tokens of non-inhibitor, non-variable, non-linking arcs
+  // const singleBindingCandidates: Binding = [];
+  // for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
+  //   if (arcPlaceInfo.isInhibitorArc || arcPlaceInfo.variableClass || arcPlaceInfo.isLinkingPlace) continue;
+  //   singleBindingCandidates.push(arcPlaceInfo.tokens);
+  // }
+  // const jointSingleBindingCandidates = cartesianProduct(singleBindingCandidates);
+  // console.log("Joint single binding candidates:", jointSingleBindingCandidates);
+  // // [[I1],[O1]], [[I2],[O1]], [[I1],[O2]], [[I2],[O2]]
+  
+  // // Step 4: delete bindings that do not satisfy links and join remaining bindings with link token
+  // const linkedBindingCandidates = getLinkedBindingCandidates(
+  //   jointSingleBindingCandidates,
+  //   linkTokenPerPlace, // I1,O1,C1, I2,O2,C1
+  //   placeIdPerDataClassAlias,
+  //   biggestLinks,
+  //   arcPlaceInfoDict,
+  // );
+  // console.log("Linked binding candidates:", linkedBindingCandidates); // [I1],[O1],[{I1,O1,C1}{I1,O1,C2}]
+  
+  // // Step 5: extend bindings with non-linking variable arcs 
+  // const finalBindingCandidates = getFinalBindingCandidates(
+  //   linkedBindingCandidates,
+  //   arcPlaceInfoDict,
+  // );
+  // console.log("Final binding candidates:", finalBindingCandidates); // [[{I: I1}],[{O:O1}}],[{I:I1,C:C1}{I:I1,C:C2}],[[C1,C2]]]
+  // // --> Binding: [[{I: I1}],[O1],[{I1,C1}{I1,C2}]] + Backlog token: [[C1,C2]]
+  // // TODO: introduce dependency from potential variable link bindings to non-linking variable bindings
+
+  // // Step 6: return bindings as OutputToken
+  // const outputBindings = createOutputBindings(finalBindingCandidates);
+  // console.log("Output bindings:", outputBindings);
+  // return outputBindings;
+
+  function cartesianProduct(arrays: Binding): Binding[] {
   // We want the cartesian product to return an array of arrays of Token,
   // where each inner array contains one Token from one input array.
   // The second inner array contains the product combinations.
@@ -227,99 +323,3 @@ function getFinalBindingCandidates(
 
   return finalBindingCandidates;
 }
-
-export function getValidInputBindings(transition: Transition): OutputBinding[] {
-  console.log("Transition:", transition.id);
-  
-  // Early return: unbound output variables
-  if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
-    console.log("Transition has unbound output variables.");
-    return [];
-  }
-  
-  // Early return: mismatched variable types
-  if (hasMismatchedVariableTypes(transition.incoming, transition.outgoing)) {
-    console.log("Transition has mismatched variable types.");
-    return [];
-  }
-  
-  // If no incoming arcs, transition is always enabled
-  if (transition.incoming.length === 0) {
-    return [[]]; // For consistency, return array with one empty binding
-  }
-
-  // Step 1: build ArcPlaceInfoDict in a way to merge arcs with same dataClassInfoDict
-  const [arcPlaceInfoDict, tokenStructure] = buildArcPlaceInfoDict(transition.incoming);
-  
-  // Early return: missing tokens in non-inhibitor arcs
-  if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
-    return [];
-  }
-  
-  // Step 2: get biggest exclusive links, link tokens per place, placeId per dataClass alias
-  const biggestLinks = getBiggestLinks(arcPlaceInfoDict);
-  const [linkTokenPerPlace, placeIdPerDataClassAlias] = getAllLinkToken(arcPlaceInfoDict);
-  
-  if (biggestLinks.length == 0) {
-    // Step 3.1: no links, simply return all tokenValues per DataClass (together with TokenStructure)
-  }
-  else {
-    // Step 3.2: links exist, return only bindings that satisfy the links (together with TokenStructure)
-  }
-  
-  console.log("ArcPlaceInfoDict:", arcPlaceInfoDict);
-  console.log("TokenStructure:", tokenStructure);
-  
-  return [[[{"I": "Item_1"}],[{"P": "Package_1"}, {"P": "Package_3"}],[{"O": "Order_1"}]]]; // TODO: remove, only for testing
-
-  // Step X: eliminate tokens blocked by inhibitors
-  // TODO: now we should only remain with an arcPlaceInfoDict where tokens blocked by inhibitors are removed
-  // Thus all remaining tokens are candidates for the respective arc
-  // const inhibitorTokens = getInhibitorTokens(arcPlaceInfoDict);
-  // console.log("Inhibitor tokens:", inhibitorTokens);
-}
-
-export function transitionIsEnabled(transition: Transition): boolean {
-  const bindings = getValidInputBindings(transition);
-  return !!bindings.length;
-}
-
-
-
- // --------------------------------------------
-  // Legacy code for reference
-  // --------------------------------------------
-
-  // // Step 3: compute arc-based cartesian product of all tokens of non-inhibitor, non-variable, non-linking arcs
-  // const singleBindingCandidates: Binding = [];
-  // for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
-  //   if (arcPlaceInfo.isInhibitorArc || arcPlaceInfo.variableClass || arcPlaceInfo.isLinkingPlace) continue;
-  //   singleBindingCandidates.push(arcPlaceInfo.tokens);
-  // }
-  // const jointSingleBindingCandidates = cartesianProduct(singleBindingCandidates);
-  // console.log("Joint single binding candidates:", jointSingleBindingCandidates);
-  // // [[I1],[O1]], [[I2],[O1]], [[I1],[O2]], [[I2],[O2]]
-  
-  // // Step 4: delete bindings that do not satisfy links and join remaining bindings with link token
-  // const linkedBindingCandidates = getLinkedBindingCandidates(
-  //   jointSingleBindingCandidates,
-  //   linkTokenPerPlace, // I1,O1,C1, I2,O2,C1
-  //   placeIdPerDataClassAlias,
-  //   biggestLinks,
-  //   arcPlaceInfoDict,
-  // );
-  // console.log("Linked binding candidates:", linkedBindingCandidates); // [I1],[O1],[{I1,O1,C1}{I1,O1,C2}]
-  
-  // // Step 5: extend bindings with non-linking variable arcs 
-  // const finalBindingCandidates = getFinalBindingCandidates(
-  //   linkedBindingCandidates,
-  //   arcPlaceInfoDict,
-  // );
-  // console.log("Final binding candidates:", finalBindingCandidates); // [[{I: I1}],[{O:O1}}],[{I:I1,C:C1}{I:I1,C:C2}],[[C1,C2]]]
-  // // --> Binding: [[{I: I1}],[O1],[{I1,C1}{I1,C2}]] + Backlog token: [[C1,C2]]
-  // // TODO: introduce dependency from potential variable link bindings to non-linking variable bindings
-
-  // // Step 6: return bindings as OutputToken
-  // const outputBindings = createOutputBindings(finalBindingCandidates);
-  // console.log("Output bindings:", outputBindings);
-  // return outputBindings;
