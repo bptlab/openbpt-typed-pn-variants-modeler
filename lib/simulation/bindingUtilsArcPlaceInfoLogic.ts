@@ -1,4 +1,4 @@
-import { tokensEqual } from "./bindingUtilsHelper";
+import { createDataClassCombinationKeyFromDict, getDataClassKey, tokensEqual } from "./bindingUtilsHelper";
 
 /**
  * Builds a dictionary mapping arc IDs to their corresponding `ArcPlaceInfo` objects,
@@ -15,11 +15,11 @@ import { tokensEqual } from "./bindingUtilsHelper";
  */
 export function buildArcPlaceInfoDict(incomingArcs: Arc[]): [ArcPlaceInfoDict, TokenStructure]{
   const arcPlaceInfoDict: ArcPlaceInfoDict = {};
-  const tokenStructure: TokenStructure = new Set<Link>();
+  const tokenStructure: TokenStructure = new Set();
   const existingDataClassCombinations: { [key: string]: string } = {};
   for (const arc of incomingArcs) {
     const arcPlaceInfo = buildArcPlaceInfo(arc);
-    const dataClassCombination = createDataClassCombinationKey(arcPlaceInfo.dataClassInfoDict);
+    const dataClassCombination = createDataClassCombinationKeyFromDict(arcPlaceInfo.dataClassInfoDict);
     if (!existingDataClassCombinations[dataClassCombination]) {
       existingDataClassCombinations[dataClassCombination] = arc.id;
       arcPlaceInfoDict[arc.id] = arcPlaceInfo;
@@ -36,28 +36,11 @@ export function buildArcPlaceInfoDict(incomingArcs: Arc[]): [ArcPlaceInfoDict, T
         arcPlaceInfoDict[existingArcId].tokens, arcPlaceInfoDict[existingArcId].dataClassInfoDict
       );
     }
-    tokenStructure.add(getArcTokenStructure(arcPlaceInfo.dataClassInfoDict));
+    for (const dataClass of getArcTokenStructure(arcPlaceInfo.dataClassInfoDict)) {
+      tokenStructure.add(getDataClassKey(dataClass.id, dataClass.alias, dataClass.isVariable));
+    }
   }
   return [arcPlaceInfoDict, tokenStructure];
-}
-
-/**
- * Generates a unique string key representing a combination of data classes.
- *
- * The key is constructed by iterating over the entries of the provided `dataClassInfoDict`,
- * sorting them by their keys, and concatenating each entry's `dataClassId`, `alias`, and
- * `isVariable` property, separated by colons. Each entry is delimited by a double colon (`::`).
- * The trailing delimiter is removed from the final key.
- *
- * @param dataClassInfoDict - An object mapping data class IDs to their corresponding `DataClassInfo`.
- * @returns A string key uniquely identifying the combination of data classes and their properties.
- */
-function createDataClassCombinationKey(dataClassInfoDict: { [dataClassId: string]: DataClassInfo }): string {
-  let key: string = "";
-  for (const [dataClassId, dataClassInfo] of Object.entries(dataClassInfoDict).sort()) {
-    key += `${dataClassId}:${dataClassInfo.alias}:${dataClassInfo.isVariable}::`;
-  }
-  return key.endsWith("::") ? key.slice(0, -2) : key;
 }
 
 /**
@@ -191,7 +174,7 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
  * @param dataClassInfoDict - An object mapping data class IDs to their corresponding `DataClassInfo`.
  * @returns A `Link` array representing the token structure for the arcs.
  */
-function getArcTokenStructure(dataClassInfoDict: { [dataClassId: string]: DataClassInfo }): Link {
+export function getArcTokenStructure(dataClassInfoDict: { [dataClassId: string]: DataClassInfo }): Link {
   const arcTokenStructure: Link = [];
   for (const [dataClassId, dataClassInfo] of Object.entries(
     dataClassInfoDict,
@@ -199,4 +182,29 @@ function getArcTokenStructure(dataClassInfoDict: { [dataClassId: string]: DataCl
     arcTokenStructure.push({ id: dataClassId, alias: dataClassInfo.alias, isVariable: dataClassInfo.isVariable });
   }
   return arcTokenStructure;
+}
+
+/**
+ * Aggregates all token values for each data class key from the provided arc place information dictionary for places with only one data class.
+ *
+ * @param arcPlaceInfoDict - A dictionary mapping arc place identifiers to their corresponding information, including data class details and token values.
+ * @param tokenStructure - A set of data class keys representing the structure of tokens to be considered.
+ * @returns An object mapping each data class key to an array of all token values associated with that data class across all arc places.
+ */
+export function getBindingPerDataClassFromNonLinkingArcs(arcPlaceInfoDict: ArcPlaceInfoDict, tokenStructure: Set<string>): BindingPerDataClass {
+  const bindingCandidatesPerDataClass: BindingPerDataClass = {};
+    for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
+      if (arcPlaceInfo.isLinkingPlace) continue;
+      for (const [dataClassId, dataClassInfo] of Object.entries(arcPlaceInfo.dataClassInfoDict)) {
+        const key = getDataClassKey(
+          dataClassId,
+          dataClassInfo.alias,
+          dataClassInfo.isVariable,
+        );
+        bindingCandidatesPerDataClass[key] 
+        ? bindingCandidatesPerDataClass[key].push(...dataClassInfo.tokenValues) 
+        : bindingCandidatesPerDataClass[key] = [...dataClassInfo.tokenValues];
+      }
+    }
+  return bindingCandidatesPerDataClass;
 }

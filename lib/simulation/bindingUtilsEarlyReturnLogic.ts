@@ -23,15 +23,10 @@ export function hasUnboundOutputVariables(
       inputVariableNames.add(
         el.variableName +
           (arc.businessObject.variableType?.id === el.dataClass.id && 
-            arc.businessObject.variableType?.alias === el.dataClass.alias ? "[]" : ""),
+            arc.businessObject.variableType?.alias === el.dataClass.alias ? "[]" : ""), // TODO: check if this is correct
       );
     }
   }
-
-  for (const arc of incomingArcs) {
-    console.log("Incoming arc:", arc.id, arc.businessObject.inscription, arc.businessObject.variableType);
-  }
-  console.log("Input variable names:", Array.from(inputVariableNames));
 
   return outgoingArcs
     .filter((arc) => !arc.businessObject.isInhibitorArc)
@@ -65,8 +60,6 @@ export function hasMismatchedVariableTypes(
       const incomingDataclassNameDict = buildDataclassNameDictionary(incomingArcs);
       const outgoingDataclassNameDict = buildDataclassNameDictionary(outgoingArcs);
       // check that variable incoming and outgoing arcs match
-      console.log("Incoming dataclass name dict:", incomingDataclassNameDict);
-        console.log("Outgoing dataclass name dict:", outgoingDataclassNameDict);
       if (isMismatch(incomingDataclassNameDict, outgoingDataclassNameDict)) {
         return true;
       }  
