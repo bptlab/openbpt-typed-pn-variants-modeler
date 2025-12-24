@@ -1,11 +1,12 @@
 /**
- * Determines whether two tokens are equal by comparing their lengths and ensuring that
- * every element in the first token has a corresponding element in the second token with
- * matching `dataClass.id`, `dataClass.alias`, and `value`.
+ * Compares two Token objects for equality.
  *
- * @param tokenA - The first token to compare, represented as an array of objects.
- * @param tokenB - The second token to compare, represented as an array of objects.
- * @returns `true` if both tokens are equal in length and content; otherwise, `false`.
+ * A Token is defined as a record where each key is a dataClassKey and the value is a token value.
+ * The function checks if both tokens have the same set of keys and that each corresponding value is equal.
+ *
+ * @param tokenA - The first Token object to compare.
+ * @param tokenB - The second Token object to compare.
+ * @returns `true` if both tokens have identical keys and values; otherwise, `false`.
  */
 export function tokensEqual(tokenA: Token, tokenB: Token): boolean {
   // Assuming the new Token implementation is: type Token = Record<string, string>
@@ -78,6 +79,15 @@ export function createDataClassCombinationKeyFromLink(link: Link): string {
   return key.endsWith("::") ? key.slice(0, -2) : key;
 }
 
+/**
+ * Extracts a `DataClass` object from a string key.
+ *
+ * The key is expected to be a colon-separated string in the format `"id:alias:isVariableStr"`.
+ * Only the `id` and `alias` parts are used to construct the returned object.
+ *
+ * @param dataClassKey - The colon-separated string representing the data class.
+ * @returns An object containing the `id` and `alias` extracted from the key.
+ */
 export function getDataClassFromKey(dataClassKey: string): DataClass {
   const [id, alias, isVariableStr] = dataClassKey.split(":");
   return { id, alias };
