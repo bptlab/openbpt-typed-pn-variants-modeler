@@ -1,12 +1,8 @@
 import { buildArcPlaceInfoDict, getBindingPerDataClassFromNonLinkingArcs } from "./bindingUtilsArcPlaceInfoLogic";
 import { hasAvailableTokensForAllArcs, hasMismatchedVariableTypes, hasUnboundOutputVariables } from "./bindingUtilsEarlyReturnLogic";
-import { getBiggestLinks, getBindingsForLink, getLinkTokenPerLink } from "./bindingUtilsLinkingLogic";
-import { cartesianProduct } from "./context-pads/FireTransitionUtils";
+import { cartesianProductBindings, getBiggestLinks, getBindingsForLink, getDataClassesNotInLinks, getTokenPerLink } from "./bindingUtilsLinkingLogic";
 
-
-export function getValidInputBindings(transition: Transition): BindingPerDataClass[] {
-  console.log("Transition:", transition.id);
-  
+export function getValidInputBindings(transition: Transition): BindingPerDataClass[] {  
   // Early return: unbound output variables
   if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
     console.log("Transition has unbound output variables.");
@@ -20,8 +16,7 @@ export function getValidInputBindings(transition: Transition): BindingPerDataCla
   }
   
   // Step 1: build arcPlaceInfoDict and tokenStructure
-  const [arcPlaceInfoDict, tokenStructure] = buildArcPlaceInfoDict(transition.incoming);
-  console.log("TokenStructure:", tokenStructure);
+  const arcPlaceInfoDict = buildArcPlaceInfoDict(transition.incoming);
   
   // Early return: missing tokens in non-inhibitor arcs
   if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
@@ -30,15 +25,13 @@ export function getValidInputBindings(transition: Transition): BindingPerDataCla
   
   // Step 2: get biggest exclusive links, link tokens per place, placeId per dataClass alias
   const [biggestLinks, allLinks] = getBiggestLinks(arcPlaceInfoDict);
-  const linkTokenPerLink = getLinkTokenPerLink(biggestLinks, arcPlaceInfoDict);
+  const tokenPerLink = getTokenPerLink(arcPlaceInfoDict);
   
-
   // Step 3: compute bindings
-  const bindingPerDataClassFromNonLinkingArcs = getBindingPerDataClassFromNonLinkingArcs(arcPlaceInfoDict, tokenStructure); 
+  const bindingPerDataClassFromNonLinkingArcs = getBindingPerDataClassFromNonLinkingArcs(arcPlaceInfoDict); 
 
   if (biggestLinks.length == 0) {
     // Step 3.1: no links exist, return only bindings from non-linking arcs
-
     return [bindingPerDataClassFromNonLinkingArcs];
   }
   else {
@@ -48,22 +41,31 @@ export function getValidInputBindings(transition: Transition): BindingPerDataCla
     for (const link of biggestLinks) {
       // each bindingCandidatesPerLink is a BindingPerDataClass for one link
       // and only contains bindings for data classes used in that link 
-      bindingCandidatesPerLink.push(getBindingsForLink(link, allLinks, linkTokenPerLink, bindingPerDataClassFromNonLinkingArcs)); 
+      const bindings = getBindingsForLink(link, allLinks, tokenPerLink, bindingPerDataClassFromNonLinkingArcs);
+      bindingCandidatesPerLink.push(bindings); 
+    }
+
+    // lastly, push all token of arcs which data classes are not used in any link
+    const dataClassesNotInLinks = getDataClassesNotInLinks(bindingPerDataClassFromNonLinkingArcs, biggestLinks);
+    
+    if (dataClassesNotInLinks.size > 0) {
+      const bindingForNonLinkingDataClasses: BindingPerDataClass = {};
+      dataClassesNotInLinks.forEach(dataClassKey => {
+        bindingForNonLinkingDataClasses[dataClassKey] = bindingPerDataClassFromNonLinkingArcs[dataClassKey];
+      });
+      bindingCandidatesPerLink.push([bindingForNonLinkingDataClasses]);
     }
     // Create Cartesian product of all bindingCandidatesPerLink
-    return cartesianProduct(bindingCandidatesPerLink);
-    
+    console.log("Transition:", transition.id);
+    console.log("Valid Binding:", cartesianProductBindings(bindingCandidatesPerLink));
+    return cartesianProductBindings(bindingCandidatesPerLink);
   }
-
-  return [{"DC1:I:false": ["Item_1"], "DC2:P:true": ["Package_1", "Package_3"], "DC3:I:false": ["Order_1"]}, {"DC1:I:false": ["Item_2"]}]; // TODO: remove, only for testing
 
   // Step X: eliminate tokens blocked by inhibitors
   // TODO: now we should only remain with an arcPlaceInfoDict where tokens blocked by inhibitors are removed
   // Thus all remaining tokens are candidates for the respective arc
   // const inhibitorTokens = getInhibitorTokens(arcPlaceInfoDict);
-  // console.log("Inhibitor tokens:", inhibitorTokens);
 }
-
 
 
 export function transitionIsEnabled(transition: Transition): boolean {

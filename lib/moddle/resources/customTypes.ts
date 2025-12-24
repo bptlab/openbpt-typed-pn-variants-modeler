@@ -21,16 +21,14 @@ interface ArcPlaceInfoDict {
 }
 
 // Token: An Array of TokenValue representing one token
-type Token = TokenValue[];
+type Token = { [DataClassKey: string]: string };
 
 // Link: An array of id-label-pairs representing a link
 type Link = { id: string; alias: string; isVariable: boolean }[];
 
-type LinkToken = {variableType: DataClass | undefined; token: Token};
-
 // LinkTokenPerLink: A mapping from a data class combination key to an 
 // array of LinkTokens
-type LinkTokenPerLink = { [dataClassCombinationKey: string]: LinkToken[] };
+type TokenPerLink = { [dataClassCombinationKey: string]: Token[] };
 
 // Binding: A mapping from dataClass id, alias and isVariable to an array
 // of values representing all available tokenValues for that data class

@@ -14,19 +14,14 @@ export function hasUnboundOutputVariables(
   incomingArcs: Arc[],
   outgoingArcs: Arc[],
 ): boolean {
-  const inputVariableNames = new Set<string>();
-  for (const arc of incomingArcs) {
-    if (arc.businessObject.isInhibitorArc) continue; // exclude inhibitor arcs
-    const inscriptionElements =
-      arc.businessObject.inscription?.inscriptionElements || [];
-    for (const el of inscriptionElements) {
-      inputVariableNames.add(
-        el.variableName +
-          (arc.businessObject.variableType?.id === el.dataClass.id && 
-            arc.businessObject.variableType?.alias === el.dataClass.alias ? "[]" : ""), // TODO: check if this is correct
-      );
-    }
-  }
+  const inputVariableNames = new Set<string>(
+    incomingArcs
+      .filter((arc) => !arc.businessObject.isInhibitorArc) // exclude inhibitor arcs
+      .flatMap(
+        (arc: Arc) => arc.businessObject.inscription?.inscriptionElements || [],
+      )
+      .map((el: InscriptionElement) => el.variableName), // el should be InscriptionElement[]/Inscription
+  );
 
   return outgoingArcs
     .filter((arc) => !arc.businessObject.isInhibitorArc)
@@ -34,7 +29,7 @@ export function hasUnboundOutputVariables(
       const inscriptionElements =
         arc.businessObject.inscription?.inscriptionElements || [];
       return inscriptionElements.some(
-        (el: any) => // el should be InscriptionElement
+        (el: InscriptionElement) => // el should be InscriptionElement
           !el.isGenerated && !inputVariableNames.has(el.variableName),
       );
     });

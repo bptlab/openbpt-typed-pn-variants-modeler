@@ -8,31 +8,24 @@
  * @returns `true` if both tokens are equal in length and content; otherwise, `false`.
  */
 export function tokensEqual(tokenA: Token, tokenB: Token): boolean {
-  return (
-    tokenA.length === tokenB.length &&
-    tokenA.every((tokenAValue) => {
-      return tokenB.some((tokenBValue) =>
-        tokenAValue.dataClass.id === tokenBValue.dataClass.id &&
-        tokenAValue.dataClass.alias === tokenBValue.dataClass.alias &&
-        tokenAValue.value === tokenBValue.value,
-      );
-    })
-  );
+  // Assuming the new Token implementation is: type Token = Record<string, string>
+  // where the key is a dataClassKey and the value is the token value.
+
+  const tokenAKeys = Object.keys(tokenA);
+  const tokenBKeys = Object.keys(tokenB);
+
+  return tokenAKeys.length !== tokenBKeys.length
+  ? false
+  : tokenAKeys.every(key => tokenB.hasOwnProperty(key) && tokenA[key] === tokenB[key]);
 }
 
-export function tokensOverlap(tokenA: Token, tokenB: Token, dataClasses: DataClass[]): boolean {
-  let isOverlapping = true;
-
-  for (const dataClass of dataClasses) {
-    const tokenAValue = tokenA.find(tv => tv.dataClass.id === dataClass.id && tv.dataClass.alias === dataClass.alias);
-    const tokenBValue = tokenB.find(tv => tv.dataClass.id === dataClass.id && tv.dataClass.alias === dataClass.alias);
-    if (!tokenAValue || !tokenBValue || tokenAValue.value !== tokenBValue.value) {
-      isOverlapping = false;
-      break;
+export function tokensOverlap(tokenA: Token, tokenB: Token, dataClassKeys: string[]): boolean {
+  for (const key of dataClassKeys) {
+    if (!(key in tokenA) || !(key in tokenB) || tokenA[key] !== tokenB[key]) {
+      return false;
     }
   }
-
-  return isOverlapping;
+  return true;
 }
 
 /**
@@ -79,8 +72,13 @@ export function createDataClassCombinationKeyFromDict(dataClassInfoDict: { [data
  */
 export function createDataClassCombinationKeyFromLink(link: Link): string {
   let key: string = "";
-  for (const linkElement of link.sort()) {
+  for (const linkElement of [...link].sort((a, b) => a.id.localeCompare(b.id))) {
     key += getDataClassKey(linkElement.id, linkElement.alias, linkElement.isVariable) + "::";
   }
   return key.endsWith("::") ? key.slice(0, -2) : key;
+}
+
+export function getDataClassFromKey(dataClassKey: string): DataClass {
+  const [id, alias, isVariableStr] = dataClassKey.split(":");
+  return { id, alias };
 }
