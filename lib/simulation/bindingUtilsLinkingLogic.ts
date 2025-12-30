@@ -236,7 +236,6 @@ export function getBindingsForLink(
     }
     bindings.push(filteredBinding);
   }
-  console.log("Bindings for link in getBindingsForLink:", bindings);
   return bindings;
 }
 

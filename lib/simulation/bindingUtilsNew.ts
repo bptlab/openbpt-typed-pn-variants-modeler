@@ -5,13 +5,13 @@ import { cartesianProductBindings, getBiggestLinks, getBindingsForLink, getDataC
 export function getValidInputBindings(transition: Transition): BindingPerDataClass[] {  
   // Early return: unbound output variables
   if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
-    console.log("Transition has unbound output variables.");
+    // console.log("Transition ${transition.id} has unbound output variables.");
     return [];
   }
   
   // Early return: mismatched variable types
   if (hasMismatchedVariableTypes(transition.incoming, transition.outgoing)) {
-    console.log("Transition has mismatched variable types.");
+    // console.log("Transition ${transition.id} has mismatched variable types.");
     return [];
   }
   
@@ -20,6 +20,7 @@ export function getValidInputBindings(transition: Transition): BindingPerDataCla
   
   // Early return: missing tokens in non-inhibitor arcs
   if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
+    // console.log("Transition ${transition.id} has missing tokens in non-inhibitor arcs.");
     return [];
   }
   
@@ -56,8 +57,6 @@ export function getValidInputBindings(transition: Transition): BindingPerDataCla
       bindingCandidatesPerLink.push([bindingForNonLinkingDataClasses]);
     }
     // Create Cartesian product of all bindingCandidatesPerLink
-    console.log("Transition:", transition.id);
-    console.log("Valid Binding:", cartesianProductBindings(bindingCandidatesPerLink));
     return cartesianProductBindings(bindingCandidatesPerLink);
   }
 
