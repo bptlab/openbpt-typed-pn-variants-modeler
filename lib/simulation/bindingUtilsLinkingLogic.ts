@@ -19,24 +19,6 @@ export function getBiggestLinks(
   const allLinks: Link[] = deduplicateLinks(getAllLinks(arcPlaceInfoDict));
   let tempLinks = [...allLinks];
 
-  // Helper to check if two links overlap (share at least one element)
-  function linksOverlap(linkA: Link, linkB: Link): boolean {
-    const aSet = new Set(linkA.map(l => getDataClassKey(l.id, l.alias, l.isVariable)));
-    return linkB.some(l => aSet.has(getDataClassKey(l.id, l.alias, l.isVariable)));
-  }
-
-  // Helper to merge two links (union of elements, order-insensitive)
-  function mergeLinks(linkA: Link, linkB: Link): Link {
-    const map = new Map<string, Link[0]>();
-    for (const l of linkA) {
-      map.set(getDataClassKey(l.id, l.alias, l.isVariable), l);
-    }
-    for (const l of linkB) {
-      map.set(getDataClassKey(l.id, l.alias, l.isVariable), l);
-    }
-    return Array.from(map.values());
-  }
-
   // Iteratively merge overlapping links
   let merged = true;
   while (merged) {
@@ -124,6 +106,39 @@ function deduplicateLinks(links: Link[]): Link[] {
     }
   }
   return uniqueLinks;
+}
+
+/**
+ * Determines whether two arrays of links have any overlapping elements based on their unique data class keys.
+ *
+ * @param linkA - The first array of `Link` objects to compare.
+ * @param linkB - The second array of `Link` objects to compare.
+ * @returns `true` if there is at least one link in `linkB` that shares the same data class key as a link in `linkA`; otherwise, `false`.
+ */
+function linksOverlap(linkA: Link, linkB: Link): boolean {
+  const aSet = new Set(linkA.map(l => getDataClassKey(l.id, l.alias, l.isVariable)));
+  return linkB.some(l => aSet.has(getDataClassKey(l.id, l.alias, l.isVariable)));
+}
+
+/**
+ * Merges two arrays of `Link` objects into a single array, removing duplicates based on a unique key
+ * generated from each link's `id`, `alias`, and `isVariable` properties.
+ *
+ * If a duplicate is found between `linkA` and `linkB`, the link from `linkB` will overwrite the one from `linkA`.
+ *
+ * @param linkA - The first array of `Link` objects to merge.
+ * @param linkB - The second array of `Link` objects to merge.
+ * @returns A new array containing the merged `Link` objects with duplicates removed.
+ */
+function mergeLinks(linkA: Link, linkB: Link): Link {
+  const map = new Map<string, Link[0]>();
+  for (const l of linkA) {
+    map.set(getDataClassKey(l.id, l.alias, l.isVariable), l);
+  }
+  for (const l of linkB) {
+    map.set(getDataClassKey(l.id, l.alias, l.isVariable), l);
+  }
+  return Array.from(map.values());
 }
 
 /**
@@ -304,27 +319,6 @@ function getFirstOverlap(link: Link, links: Link[]): [number, string[]] {
     }
   }
   return [-1, []];
-}
-
-/**
- * Merges two arrays of `Link` objects into a single array, removing duplicates based on a unique key
- * generated from each link's `id`, `alias`, and `isVariable` properties.
- *
- * If a duplicate is found between `linkA` and `linkB`, the link from `linkB` will overwrite the one from `linkA`.
- *
- * @param linkA - The first array of `Link` objects to merge.
- * @param linkB - The second array of `Link` objects to merge.
- * @returns A new array containing the merged `Link` objects with duplicates removed.
- */
-function mergeLinks(linkA: Link, linkB: Link): Link {
-  const map = new Map<string, Link[0]>();
-  for (const l of linkA) {
-    map.set(getDataClassKey(l.id, l.alias, l.isVariable), l);
-  }
-  for (const l of linkB) {
-    map.set(getDataClassKey(l.id, l.alias, l.isVariable), l);
-  }
-  return Array.from(map.values());
 }
 
 /**
