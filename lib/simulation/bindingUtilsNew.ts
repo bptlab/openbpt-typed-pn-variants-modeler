@@ -35,7 +35,7 @@ export function getValidInputBindings(transition: Transition): BindingPerDataCla
     return [bindingPerDataClassFromNonLinkingArcs];
   }
   else {
-    // Step 3.2: links exist, return only bindings that satisfy the links (together with TokenStructure)
+    // Step 3.2: links exist, return only bindings that satisfy the links
 
     const bindingCandidatesPerLink: BindingPerDataClass[][] = [];
     for (const link of biggestLinks) {
