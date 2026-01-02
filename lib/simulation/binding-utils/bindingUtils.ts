@@ -35,6 +35,7 @@ export function getValidInputBindings(transition: Transition): BindingPerDataCla
 
   if (biggestLinks.length == 0) {
     // Step 3.1: no links exist, return only bindings from non-linking arcs
+    // if there are no incoming arcs, return empty binding
     validInputBindings = [bindingPerDataClassFromNonLinkingArcs];
   }
   else {
@@ -44,8 +45,8 @@ export function getValidInputBindings(transition: Transition): BindingPerDataCla
     for (const link of biggestLinks) {
       // each bindingCandidatesPerLink is a BindingPerDataClass for one link
       // and only contains bindings for data classes used in that link 
-      const bindings = getBindingsForLink(link, allLinks, tokenPerLink, bindingPerDataClassFromNonLinkingArcs);
-      bindingCandidatesPerLink.push(bindings); 
+      const bindingCandidate = getBindingsForLink(link, allLinks, tokenPerLink, bindingPerDataClassFromNonLinkingArcs);
+      bindingCandidatesPerLink.push(bindingCandidate); 
     }
 
     // lastly, push all token of arcs which data classes are not used in any link
@@ -67,7 +68,15 @@ export function getValidInputBindings(transition: Transition): BindingPerDataCla
   // TODO: implement inhibitor arc logic to remove blocked bindings
   // Example: [I: 1,2,3, O: 1,2,3] 
   // inhibitor arcs: I2,O3 + I2,O2
-  // output: [I: 1,3, O: 1,2,3], [I: 2, O: 1]
+
+  // My idea: same logic as links: find biggest inhibitor links, compute inhibitor bindings per inhibitor link
+  // Then treat them like normal links (which means only one value per non variable arc per binding) 
+  // and remove bindings that match any inhibitor binding
+  // -> output: [I: 1, O: 1], [I: 1, O: 2], [I: 1, O: 3], [I: 2, O: 1], [I: 3, O: 1], [I: 3, O: 2], [I: 3, O: 3]
+
+
+  // Step 5: check for ExactSubsetSynchro constraint
+  // ** more magic **
   
   return validInputBindings;
 }

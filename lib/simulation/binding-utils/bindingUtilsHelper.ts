@@ -20,6 +20,18 @@ export function tokensEqual(tokenA: Token, tokenB: Token): boolean {
   : tokenAKeys.every(key => tokenB.hasOwnProperty(key) && tokenA[key] === tokenB[key]);
 }
 
+/**
+ * Determines whether two tokens overlap based on a set of specified data class keys.
+ *
+ * This function checks if, for every key in `dataClassKeys`, both `tokenA` and `tokenB` have the key,
+ * and the values for that key are strictly equal in both tokens. If any key is missing or the values differ,
+ * the function returns `false`. Otherwise, it returns `true`.
+ *
+ * @param tokenA - The first token object to compare.
+ * @param tokenB - The second token object to compare.
+ * @param dataClassKeys - An array of string keys to check for overlap between the two tokens.
+ * @returns `true` if all specified keys exist in both tokens and their values are equal; otherwise, `false`.
+ */
 export function tokensOverlap(tokenA: Token, tokenB: Token, dataClassKeys: string[]): boolean {
   for (const key of dataClassKeys) {
     if (!(key in tokenA) || !(key in tokenB) || tokenA[key] !== tokenB[key]) {

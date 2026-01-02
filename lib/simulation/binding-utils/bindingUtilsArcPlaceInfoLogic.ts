@@ -161,27 +161,6 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
 }
 
 /**
- * Generates an array of token structures representing the arcs for each data class.
- *
- * Iterates over the provided dictionary of data class information and constructs
- * a `Link` array, where each element contains the `id`, `alias`, and `isVariable`
- * properties derived from the corresponding `DataClassInfo`.
- *
- * @param dataClassInfoDict - A dictionary mapping data class IDs to their corresponding `DataClassInfo` objects.
- * @returns An array of objects (`Link`) each representing a token structure for an arc,
- *          including the data class ID, its alias, and whether it is variable.
- */
-export function getArcTokenStructure(dataClassInfoDict: { [dataClassId: string]: DataClassInfo }): Link {
-  const arcTokenStructure: Link = [];
-  for (const [dataClassId, dataClassInfo] of Object.entries(
-    dataClassInfoDict,
-  )) {
-    arcTokenStructure.push({ id: dataClassId, alias: dataClassInfo.alias, isVariable: dataClassInfo.isVariable });
-  }
-  return arcTokenStructure;
-}
-
-/**
  * Extracts and aggregates token values for each data class from non-linking arcs in the provided arc-place information dictionary.
  *
  * Iterates through all entries in the `arcPlaceInfoDict`, skipping those marked as linking places.
