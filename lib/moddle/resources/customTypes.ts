@@ -36,7 +36,7 @@ interface ArcPlaceInfo {
 
 /**
  * A dictionary mapping arc IDs to their corresponding {@link ArcPlaceInfo} objects.
- * 
+ *
  * Each key in the dictionary is a unique string identifier for an arc,
  * and the value is the associated information about the place connected to that arc.
  */
@@ -46,7 +46,7 @@ interface ArcPlaceInfoDict {
 
 /**
  * Represents a mapping from a data class key to its corresponding string value.
- * 
+ *
  * Each property key in the `Token` type is a string representing a data class identifier,
  * and its value is a string associated with that key.
  */
@@ -60,7 +60,6 @@ type Token = { [DataClassKey: string]: string };
  * @property isVariable - Indicates whether the link refers to a variable.
  */
 type Link = { id: string; alias: string; isVariable: boolean }[];
-
 
 /**
  * Represents a mapping from a data class combination key to an array of `Token` objects.

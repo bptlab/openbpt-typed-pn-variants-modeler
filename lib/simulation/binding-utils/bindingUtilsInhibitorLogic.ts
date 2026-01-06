@@ -7,9 +7,7 @@
  * @param arcPlaceInfoDict - A dictionary mapping arc-place identifiers to their corresponding information, including tokens and inhibitor status.
  * @returns An array of tokens that are associated with inhibitor arcs.
  */
-function getInhibitorTokens(
-  arcPlaceInfoDict: ArcPlaceInfoDict,
-): Token[] {
+function getInhibitorTokens(arcPlaceInfoDict: ArcPlaceInfoDict): Token[] {
   const inhibitorTokens: Token[] = [];
 
   for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
@@ -21,7 +19,6 @@ function getInhibitorTokens(
   return inhibitorTokens;
 }
 
-
 // function isTokenBlockedByInhibitor(
 //   token: TokenValue,
 //   inhibitorTokens: TokenValue[],
@@ -30,5 +27,3 @@ function getInhibitorTokens(
 //     tokensEqual(token, inhibitorToken),
 //   );
 // }
-
-

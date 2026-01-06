@@ -16,8 +16,10 @@ export function tokensEqual(tokenA: Token, tokenB: Token): boolean {
   const tokenBKeys = Object.keys(tokenB);
 
   return tokenAKeys.length !== tokenBKeys.length
-  ? false
-  : tokenAKeys.every(key => tokenB.hasOwnProperty(key) && tokenA[key] === tokenB[key]);
+    ? false
+    : tokenAKeys.every(
+        (key) => tokenB.hasOwnProperty(key) && tokenA[key] === tokenB[key],
+      );
 }
 
 /**
@@ -32,7 +34,11 @@ export function tokensEqual(tokenA: Token, tokenB: Token): boolean {
  * @param dataClassKeys - An array of string keys to check for overlap between the two tokens.
  * @returns `true` if all specified keys exist in both tokens and their values are equal; otherwise, `false`.
  */
-export function tokensOverlap(tokenA: Token, tokenB: Token, dataClassKeys: string[]): boolean {
+export function tokensOverlap(
+  tokenA: Token,
+  tokenB: Token,
+  dataClassKeys: string[],
+): boolean {
   for (const key of dataClassKeys) {
     if (!(key in tokenA) || !(key in tokenB) || tokenA[key] !== tokenB[key]) {
       return false;
@@ -49,7 +55,11 @@ export function tokensOverlap(tokenA: Token, tokenB: Token, dataClassKeys: strin
  * @param isVariable - Indicates whether the data class represents a variable.
  * @returns A string key in the format `${id}:${alias}:${isVariable}`.
  */
-export function getDataClassKey(id: string, alias: string, isVariable: boolean): string {
+export function getDataClassKey(
+  id: string,
+  alias: string,
+  isVariable: boolean,
+): string {
   return `${id}:${alias}:${isVariable}`;
 }
 
@@ -64,10 +74,19 @@ export function getDataClassKey(id: string, alias: string, isVariable: boolean):
  * @param dataClassInfoDict - An object mapping data class IDs to their corresponding `DataClassInfo`.
  * @returns A string key uniquely identifying the combination of data classes and their properties.
  */
-export function createDataClassCombinationKeyFromDict(dataClassInfoDict: { [dataClassId: string]: DataClassInfo }): string {
+export function createDataClassCombinationKeyFromDict(dataClassInfoDict: {
+  [dataClassId: string]: DataClassInfo;
+}): string {
   let key: string = "";
-  for (const [dataClassId, dataClassInfo] of Object.entries(dataClassInfoDict).sort()) {
-    key += getDataClassKey(dataClassId, dataClassInfo.alias, dataClassInfo.isVariable) + "::";
+  for (const [dataClassId, dataClassInfo] of Object.entries(
+    dataClassInfoDict,
+  ).sort()) {
+    key +=
+      getDataClassKey(
+        dataClassId,
+        dataClassInfo.alias,
+        dataClassInfo.isVariable,
+      ) + "::";
   }
   return key.endsWith("::") ? key.slice(0, -2) : key;
 }
@@ -85,8 +104,15 @@ export function createDataClassCombinationKeyFromDict(dataClassInfoDict: { [data
  */
 export function createDataClassCombinationKeyFromLink(link: Link): string {
   let key: string = "";
-  for (const linkElement of [...link].sort((a, b) => a.id.localeCompare(b.id))) {
-    key += getDataClassKey(linkElement.id, linkElement.alias, linkElement.isVariable) + "::";
+  for (const linkElement of [...link].sort((a, b) =>
+    a.id.localeCompare(b.id),
+  )) {
+    key +=
+      getDataClassKey(
+        linkElement.id,
+        linkElement.alias,
+        linkElement.isVariable,
+      ) + "::";
   }
   return key.endsWith("::") ? key.slice(0, -2) : key;
 }

@@ -29,8 +29,9 @@ export function hasUnboundOutputVariables(
       const inscriptionElements =
         arc.businessObject.inscription?.inscriptionElements || [];
       return inscriptionElements.some(
-        (el: InscriptionElement) => // el should be InscriptionElement
-          !el.isGenerated && !inputVariableNames.has(el.variableName),
+        (
+          el: InscriptionElement, // el should be InscriptionElement
+        ) => !el.isGenerated && !inputVariableNames.has(el.variableName),
       );
     });
 }
@@ -52,14 +53,16 @@ export function hasMismatchedVariableTypes(
   outgoingArcs: Arc[],
 ): boolean {
   if (incomingArcs.length > 0 && outgoingArcs.length > 0) {
-      const incomingDataclassNameDict = buildDataclassNameDictionary(incomingArcs);
-      const outgoingDataclassNameDict = buildDataclassNameDictionary(outgoingArcs);
-      // check that variable incoming and outgoing arcs match
-      if (isMismatch(incomingDataclassNameDict, outgoingDataclassNameDict)) {
-        return true;
-      }  
+    const incomingDataclassNameDict =
+      buildDataclassNameDictionary(incomingArcs);
+    const outgoingDataclassNameDict =
+      buildDataclassNameDictionary(outgoingArcs);
+    // check that variable incoming and outgoing arcs match
+    if (isMismatch(incomingDataclassNameDict, outgoingDataclassNameDict)) {
+      return true;
     }
-    
+  }
+
   return false;
 }
 
@@ -75,18 +78,25 @@ export function hasMismatchedVariableTypes(
  * @returns An object mapping each `dataClassId` to a `Set` of variable names found in the arcs.
  */
 function buildDataclassNameDictionary(arcs: Arc[]) {
-  return arcs.reduce((dict: { [dataClassId: string]: Set<string> }, arc) => {
-    const dataClassId = arc.businessObject?.variableType?.id;
-    const inscriptionElements = arc.businessObject?.inscription?.inscriptionElements;
-    // early return if missing info
-    if (!dataClassId || !inscriptionElements) return dict;
-    // add variable name to set for this dataClassId
-    const varName: string = inscriptionElements.find((elem: any) => elem.dataClass.id === dataClassId)?.variableName ?? "";
-    if (!dict[dataClassId]) dict[dataClassId] = new Set<string>();
-    dict[dataClassId].add(varName);
+  return arcs.reduce(
+    (dict: { [dataClassId: string]: Set<string> }, arc) => {
+      const dataClassId = arc.businessObject?.variableType?.id;
+      const inscriptionElements =
+        arc.businessObject?.inscription?.inscriptionElements;
+      // early return if missing info
+      if (!dataClassId || !inscriptionElements) return dict;
+      // add variable name to set for this dataClassId
+      const varName: string =
+        inscriptionElements.find(
+          (elem: any) => elem.dataClass.id === dataClassId,
+        )?.variableName ?? "";
+      if (!dict[dataClassId]) dict[dataClassId] = new Set<string>();
+      dict[dataClassId].add(varName);
 
-    return dict;
-  }, {} as { [dataClassId: string]: Set<string> });
+      return dict;
+    },
+    {} as { [dataClassId: string]: Set<string> },
+  );
 }
 
 /**
@@ -101,8 +111,11 @@ function buildDataclassNameDictionary(arcs: Arc[]) {
  * @param dict2 - The second dictionary mapping strings to sets of strings.
  * @returns `true` if the dictionaries are mismatched; otherwise, `false`.
  */
-function isMismatch(incoming: { [key: string]: Set<string> }, outgoing: { [key: string]: Set<string> }) {
-const outgoingKeys = Object.keys(outgoing);
+function isMismatch(
+  incoming: { [key: string]: Set<string> },
+  outgoing: { [key: string]: Set<string> },
+) {
+  const outgoingKeys = Object.keys(outgoing);
   // Only check that all keys/values from outgoing are in incoming
   for (const key of outgoingKeys) {
     if (!(key in incoming)) return true;
@@ -112,7 +125,7 @@ const outgoingKeys = Object.keys(outgoing);
       if (!incomingVals.has(val)) return true;
     }
   }
-return false;
+  return false;
 }
 
 /**

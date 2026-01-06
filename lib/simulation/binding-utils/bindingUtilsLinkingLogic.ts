@@ -1,4 +1,9 @@
-import { createDataClassCombinationKeyFromDict, createDataClassCombinationKeyFromLink, getDataClassKey, tokensOverlap } from "./bindingUtilsHelper";
+import {
+  createDataClassCombinationKeyFromDict,
+  createDataClassCombinationKeyFromLink,
+  getDataClassKey,
+  tokensOverlap,
+} from "./bindingUtilsHelper";
 
 /**
  * Finds and returns the largest (non-overlapping and non-subset) links from the given arc-place information dictionary.
@@ -38,14 +43,21 @@ export function getBiggestLinks(
   }
 
   // Remove subset links
-  const biggestLinks = tempLinks.filter((link, idx, arr) =>
-    !arr.some((other, otherIdx) =>
-      otherIdx !== idx &&
-      link.every(l =>
-        other.some(ol => ol.id === l.id && ol.alias === l.alias && ol.isVariable === l.isVariable)
-      ) &&
-      other.length > link.length
-    )
+  const biggestLinks = tempLinks.filter(
+    (link, idx, arr) =>
+      !arr.some(
+        (other, otherIdx) =>
+          otherIdx !== idx &&
+          link.every((l) =>
+            other.some(
+              (ol) =>
+                ol.id === l.id &&
+                ol.alias === l.alias &&
+                ol.isVariable === l.isVariable,
+            ),
+          ) &&
+          other.length > link.length,
+      ),
   );
 
   return [biggestLinks, allLinks];
@@ -61,9 +73,7 @@ export function getBiggestLinks(
  * @param arcPlaceInfoDict - A dictionary mapping place identifiers to their corresponding `ArcPlaceInfo` objects.
  * @returns An array of `Link` arrays, each representing the data class links for a linking place.
  */
-function getAllLinks(
-  arcPlaceInfoDict: ArcPlaceInfoDict,
-): Link[] {
+function getAllLinks(arcPlaceInfoDict: ArcPlaceInfoDict): Link[] {
   const allLinks: Link[] = [];
   for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
     if (!arcPlaceInfo.isLinkingPlace) continue;
@@ -71,7 +81,11 @@ function getAllLinks(
     for (const [dataClassId, dataClassInfo] of Object.entries(
       arcPlaceInfo.dataClassInfoDict,
     )) {
-      link.push({ id: dataClassId, alias: dataClassInfo.alias, isVariable: dataClassInfo.isVariable });
+      link.push({
+        id: dataClassId,
+        alias: dataClassInfo.alias,
+        isVariable: dataClassInfo.isVariable,
+      });
     }
     allLinks.push(link);
   }
@@ -91,8 +105,12 @@ function deduplicateLinks(links: Link[]): Link[] {
   // Helper to compare two links for set equality (order-insensitive)
   function linksAreEqual(linkA: Link, linkB: Link): boolean {
     if (linkA.length !== linkB.length) return false;
-    const aSet = new Set(linkA.map(l => getDataClassKey(l.id, l.alias, l.isVariable)));
-    const bSet = new Set(linkB.map(l => getDataClassKey(l.id, l.alias, l.isVariable)));
+    const aSet = new Set(
+      linkA.map((l) => getDataClassKey(l.id, l.alias, l.isVariable)),
+    );
+    const bSet = new Set(
+      linkB.map((l) => getDataClassKey(l.id, l.alias, l.isVariable)),
+    );
     if (aSet.size !== bSet.size) return false;
     for (const item of aSet) {
       if (!bSet.has(item)) return false;
@@ -101,7 +119,7 @@ function deduplicateLinks(links: Link[]): Link[] {
   }
   // Remove duplicates (order-insensitive)
   for (const link of links) {
-    if (!uniqueLinks.some(existing => linksAreEqual(existing, link))) {
+    if (!uniqueLinks.some((existing) => linksAreEqual(existing, link))) {
       uniqueLinks.push(link);
     }
   }
@@ -116,8 +134,12 @@ function deduplicateLinks(links: Link[]): Link[] {
  * @returns `true` if there is at least one link in `linkB` that shares the same data class key as a link in `linkA`; otherwise, `false`.
  */
 function linksOverlap(linkA: Link, linkB: Link): boolean {
-  const aSet = new Set(linkA.map(l => getDataClassKey(l.id, l.alias, l.isVariable)));
-  return linkB.some(l => aSet.has(getDataClassKey(l.id, l.alias, l.isVariable)));
+  const aSet = new Set(
+    linkA.map((l) => getDataClassKey(l.id, l.alias, l.isVariable)),
+  );
+  return linkB.some((l) =>
+    aSet.has(getDataClassKey(l.id, l.alias, l.isVariable)),
+  );
 }
 
 /**
@@ -157,7 +179,9 @@ export function getTokenPerLink(
   const tokenPerLink: TokenPerLink = {};
   for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
     if (!arcPlaceInfo.isLinkingPlace) continue;
-    const key = createDataClassCombinationKeyFromDict(arcPlaceInfo.dataClassInfoDict);
+    const key = createDataClassCombinationKeyFromDict(
+      arcPlaceInfo.dataClassInfoDict,
+    );
     tokenPerLink[key] = [];
     for (const token of arcPlaceInfo.tokens) {
       tokenPerLink[key].push(token);
@@ -188,31 +212,38 @@ export function getBindingsForLink(
   tokenPerLink: TokenPerLink,
   bindingPerDataClassFromNonLinkingArcs: BindingPerDataClass,
 ): BindingPerDataClass[] {
-  
   // get all links associated with the current link
-  const associatedLinks: Link[] = allLinks.filter(l =>
-    l.some(le => link.some(ce =>
-      le.id === ce.id &&
-      le.alias === ce.alias &&
-      le.isVariable === ce.isVariable
-    ))
+  const associatedLinks: Link[] = allLinks.filter((l) =>
+    l.some((le) =>
+      link.some(
+        (ce) =>
+          le.id === ce.id &&
+          le.alias === ce.alias &&
+          le.isVariable === ce.isVariable,
+      ),
+    ),
   );
-  
+
   // Step 1: get biggest link tokens (tokens that have values for all dataclasses in the link)
   const biggestLinkTokens: Token[] = [];
   if (associatedLinks.length === 1) {
-    biggestLinkTokens.push(...tokenPerLink[createDataClassCombinationKeyFromLink(link)]);
-  }
-  else {
+    biggestLinkTokens.push(
+      ...tokenPerLink[createDataClassCombinationKeyFromLink(link)],
+    );
+  } else {
     biggestLinkTokens.push(...getLinkToken(associatedLinks, tokenPerLink));
   }
   // group tokens by unique links of non variable dataclasses
-  const groupedTokens: {[key: string]: BindingPerDataClass} = {};
+  const groupedTokens: { [key: string]: BindingPerDataClass } = {};
   for (const token of biggestLinkTokens) {
     let groupKey = "";
     for (const linkElement of link) {
       if (!linkElement.isVariable) {
-        const dataClassKey = getDataClassKey(linkElement.id, linkElement.alias, linkElement.isVariable);
+        const dataClassKey = getDataClassKey(
+          linkElement.id,
+          linkElement.alias,
+          linkElement.isVariable,
+        );
         groupKey += `${dataClassKey}:${token[dataClassKey]}::`;
       }
     }
@@ -220,13 +251,23 @@ export function getBindingsForLink(
     if (!groupedTokens[groupKey]) {
       groupedTokens[groupKey] = {};
       for (const linkElement of link) {
-        const dataClassKey = getDataClassKey(linkElement.id, linkElement.alias, linkElement.isVariable);
-        groupedTokens[groupKey][dataClassKey] = linkElement.isVariable ? [] : [token[dataClassKey]];
+        const dataClassKey = getDataClassKey(
+          linkElement.id,
+          linkElement.alias,
+          linkElement.isVariable,
+        );
+        groupedTokens[groupKey][dataClassKey] = linkElement.isVariable
+          ? []
+          : [token[dataClassKey]];
       }
     }
     for (const linkElement of link) {
       if (linkElement.isVariable) {
-        const dataClassKey = getDataClassKey(linkElement.id, linkElement.alias, linkElement.isVariable);
+        const dataClassKey = getDataClassKey(
+          linkElement.id,
+          linkElement.alias,
+          linkElement.isVariable,
+        );
         groupedTokens[groupKey][dataClassKey].push(token[dataClassKey]);
       }
     }
@@ -239,14 +280,15 @@ export function getBindingsForLink(
     // filter binding to only include candidates from non-linking arcs
     const filteredBinding: BindingPerDataClass = {};
     for (const [dataClassKey, values] of Object.entries(binding)) {
-      filteredBinding[dataClassKey] = values.filter(v =>
-        bindingPerDataClassFromNonLinkingArcs[dataClassKey] &&
-        bindingPerDataClassFromNonLinkingArcs[dataClassKey].includes(v) ||
-        !bindingPerDataClassFromNonLinkingArcs[dataClassKey]
+      filteredBinding[dataClassKey] = values.filter(
+        (v) =>
+          (bindingPerDataClassFromNonLinkingArcs[dataClassKey] &&
+            bindingPerDataClassFromNonLinkingArcs[dataClassKey].includes(v)) ||
+          !bindingPerDataClassFromNonLinkingArcs[dataClassKey],
       );
     }
     // If any dataClassKey has an empty array, skip this binding
-    if (Object.values(filteredBinding).some(arr => arr.length === 0)) {
+    if (Object.values(filteredBinding).some((arr) => arr.length === 0)) {
       continue;
     }
     bindings.push(filteredBinding);
@@ -267,29 +309,32 @@ export function getBindingsForLink(
  * - The merging process relies on helper functions: `createDataClassCombinationKeyFromLink`, `getFirstOverlap`, `mergeLinks`, and `mergeLinkToken`.
  * - If no overlap is found (`overlapIndex === -1`), the function currently does nothing for that iteration.
  */
-function getLinkToken(associatedLinks: Link[], tokenPerLink: TokenPerLink): Token[] {
+function getLinkToken(
+  associatedLinks: Link[],
+  tokenPerLink: TokenPerLink,
+): Token[] {
   let mergedToken: Token[] = [];
   let mergedLink: Link = [];
   let overlapDataClassKeys: string[] = [];
   let overlapIndex: number | null = null;
-  
+
   mergedLink = associatedLinks[0];
   mergedToken = tokenPerLink[createDataClassCombinationKeyFromLink(mergedLink)];
   associatedLinks.splice(0, 1);
 
   while (associatedLinks.length > 0) {
-    [overlapIndex, overlapDataClassKeys] = getFirstOverlap(mergedLink, associatedLinks);
+    [overlapIndex, overlapDataClassKeys] = getFirstOverlap(
+      mergedLink,
+      associatedLinks,
+    );
     if (overlapIndex === -1) {
     }
     const linkToMerge = associatedLinks[overlapIndex];
-    mergedLink = mergeLinks(
-      mergedLink,
-      linkToMerge,
-    );
+    mergedLink = mergeLinks(mergedLink, linkToMerge);
     mergedToken = mergeLinkToken(
       mergedToken,
       tokenPerLink[createDataClassCombinationKeyFromLink(linkToMerge)],
-      overlapDataClassKeys
+      overlapDataClassKeys,
     );
     associatedLinks.splice(overlapIndex, 1);
   }
@@ -311,9 +356,13 @@ function getLinkToken(associatedLinks: Link[], tokenPerLink: TokenPerLink): Toke
  */
 function getFirstOverlap(link: Link, links: Link[]): [number, string[]] {
   for (let i = 0; i < links.length; i++) {
-    const aKeys = new Set(link.map(l => getDataClassKey(l.id, l.alias, l.isVariable)));
-    const bKeys = new Set(links[i].map(l => getDataClassKey(l.id, l.alias, l.isVariable)));
-    const overlap = Array.from(aKeys).filter(key => bKeys.has(key));
+    const aKeys = new Set(
+      link.map((l) => getDataClassKey(l.id, l.alias, l.isVariable)),
+    );
+    const bKeys = new Set(
+      links[i].map((l) => getDataClassKey(l.id, l.alias, l.isVariable)),
+    );
+    const overlap = Array.from(aKeys).filter((key) => bKeys.has(key));
     if (overlap.length > 0) {
       return [i, overlap];
     }
@@ -343,7 +392,6 @@ function mergeLinkToken(
   for (const tokenA of linkTokensA) {
     for (const tokenB of linkTokensB) {
       if (tokensOverlap(tokenA, tokenB, overlapDataClassKeys)) {
-        
         // Merge tokens: combine all key-value pairs, starting with tokenA
         const mergedToken: Token = { ...tokenA };
 
@@ -372,17 +420,22 @@ function mergeLinkToken(
  * - If `bindingCandidatesPerLink` is empty, returns an empty array.
  * - Each resulting binding is created by merging objects from each input array.
  */
-export function cartesianProductBindings(bindingCandidatesPerLink: BindingPerDataClass[][]): BindingPerDataClass[] {
+export function cartesianProductBindings(
+  bindingCandidatesPerLink: BindingPerDataClass[][],
+): BindingPerDataClass[] {
   if (bindingCandidatesPerLink.length === 0) return [];
-  return bindingCandidatesPerLink.reduce((acc, curr) => {
-    const result: BindingPerDataClass[] = [];
-    for (const a of acc) {
-      for (const b of curr) {
-        result.push({ ...a, ...b });
+  return bindingCandidatesPerLink.reduce(
+    (acc, curr) => {
+      const result: BindingPerDataClass[] = [];
+      for (const a of acc) {
+        for (const b of curr) {
+          result.push({ ...a, ...b });
+        }
       }
-    }
-    return result;
-  }, [{}]);
+      return result;
+    },
+    [{}],
+  );
 }
 
 /**
@@ -395,13 +448,22 @@ export function cartesianProductBindings(bindingCandidatesPerLink: BindingPerDat
  * @param biggestLinks - An array of links, where each link is an array of link elements.
  * @returns A set of data class keys that are not present in any of the provided links.
  */
-export function getDataClassesNotInLinks(bindingPerDataClassFromNonLinkingArcs: BindingPerDataClass, biggestLinks: Link[]): Set<string> {
+export function getDataClassesNotInLinks(
+  bindingPerDataClassFromNonLinkingArcs: BindingPerDataClass,
+  biggestLinks: Link[],
+): Set<string> {
   const dataClassesNotInLinks: Set<string> = new Set();
-  for (const dataClassKey of Object.keys(bindingPerDataClassFromNonLinkingArcs)) {
+  for (const dataClassKey of Object.keys(
+    bindingPerDataClassFromNonLinkingArcs,
+  )) {
     let usedInLink = false;
     for (const link of biggestLinks) {
       for (const linkElement of link) {
-        const linkDataClassKey = getDataClassKey(linkElement.id, linkElement.alias, linkElement.isVariable);
+        const linkDataClassKey = getDataClassKey(
+          linkElement.id,
+          linkElement.alias,
+          linkElement.isVariable,
+        );
         if (dataClassKey === linkDataClassKey) {
           usedInLink = true;
           break;
