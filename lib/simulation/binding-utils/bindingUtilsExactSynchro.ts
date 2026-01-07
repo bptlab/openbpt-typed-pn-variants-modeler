@@ -1,6 +1,5 @@
 import { groupTokensByNonVariableDataclasses } from "./bindingUtilsLinkingLogic";
 
-
 /**
  * Filters the provided input bindings to enforce "exact synchronization" constraints
  * on arcs marked as exact syncing. For each such arc, the function groups tokens by
@@ -20,33 +19,41 @@ export function checkExactSynchroConstraints(
   validInputBindings: BindingPerDataClass[],
 ): BindingPerDataClass[] {
   const exactSynchroArcPlaceInfos = Object.values(arcPlaceInfoDict).filter(
-    (arcPlaceInfo) => arcPlaceInfo.isExactSyncing,
+	(arcPlaceInfo) => arcPlaceInfo.isExactSyncing,
   );
 
   for (const arcPlaceInfo of exactSynchroArcPlaceInfos) {
-    const groupedTokens = groupTokensByNonVariableDataclasses(
-      Object.entries(arcPlaceInfo.dataClassInfoDict).map(([dataClassId, dataClassInfo]) => 
-				({id: dataClassId, alias: dataClassInfo.alias, isVariable: dataClassInfo.isVariable})),
-      arcPlaceInfo.tokens,
-    );
-		// Filter validInputBindings: each binding must have all or none token values of any groupedToken
-		validInputBindings = validInputBindings.filter(inputBinding => {
-			let partiallyIncluded = false;
-			let fullyIncludedDatasClasses = 0;
-			for (const arcBinding of Object.values(groupedTokens)) {
-				for (const dataClassKey of Object.keys(arcBinding)) {
-					if (arcBinding[dataClassKey].some(tokenValue => inputBinding[dataClassKey].includes(tokenValue))) {partiallyIncluded = true}
-					if (arcBinding[dataClassKey].every(tokenValue => inputBinding[dataClassKey].includes(tokenValue))) {fullyIncludedDatasClasses += 1}
-				}
-				if (partiallyIncluded && fullyIncludedDatasClasses < Object.keys(arcBinding).length) {
-					return false; // Partially included, exclude binding
-				}
-				if (fullyIncludedDatasClasses === Object.keys(arcBinding).length) {
-					return true; // Fully included, include binding
-				}
-			}
-			return true; // No tokens from this arc, include binding
-		});
+	const groupedTokens = groupTokensByNonVariableDataclasses(
+	  Object.entries(arcPlaceInfo.dataClassInfoDict).map(
+		([dataClassId, dataClassInfo]) => ({
+		  id: dataClassId,
+		  alias: dataClassInfo.alias,
+		  isVariable: dataClassInfo.isVariable,
+		}),
+	  ),
+	  arcPlaceInfo.tokens,
+	);
+
+	validInputBindings = validInputBindings.filter((inputBinding) => {
+	  // For each group, binding must include all or none of the token values for every data class in the group
+	  for (const arcBinding of Object.values(groupedTokens)) {
+		for (const dataClassKey of Object.keys(arcBinding)) {
+		  const tokenValues = arcBinding[dataClassKey];
+		  const bindingValues = inputBinding[dataClassKey] ?? [];
+		  const hasAny = tokenValues.some((tokenValue) =>
+			bindingValues.includes(tokenValue),
+		  );
+		  const hasAll = tokenValues.every((tokenValue) =>
+			bindingValues.includes(tokenValue),
+		  );
+		  if (hasAny && !hasAll) {
+			// Partially included, exclude binding
+			return false;
+		  }
+		}
+	  }
+	  return true;
+	});
   }
   return validInputBindings;
 }
