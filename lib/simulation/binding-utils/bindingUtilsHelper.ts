@@ -130,3 +130,44 @@ export function getDataClassFromKey(dataClassKey: string): DataClass {
   const [id, alias, isVariableStr] = dataClassKey.split(":");
   return { id, alias };
 }
+
+/**
+ * Filters and returns only the non-inhibitor arcs from the provided arc-place information dictionary.
+ *
+ * @param arcPlaceInfoDict - A dictionary mapping arc-place identifiers to their corresponding information, including tokens and inhibitor status.
+ * @returns A new dictionary containing only the entries where `isInhibitorArc` is `false`.
+ */
+export function getNonInhibitorArcs(
+  arcPlaceInfoDict: ArcPlaceInfoDict,
+): ArcPlaceInfoDict {
+  return Object.fromEntries(
+    Object.entries(arcPlaceInfoDict).filter(
+      ([_, arcPlaceInfo]) => !arcPlaceInfo.isInhibitorArc,
+    ),
+  );
+}
+
+/**
+ * Returns the set of all incoming dataClassKeys excluding inhibitor arcs.
+ *
+ * @param arcPlaceInfoDict - A dictionary mapping arc-place identifiers to their corresponding information, including tokens and inhibitor status.
+ * @returns A complete set of dataClassKeys.
+ */
+export function getAllIncomingDataClassKeys(
+  arcPlaceInfoDict: ArcPlaceInfoDict,
+): Set<string> {
+  return new Set(
+    Object.values(arcPlaceInfoDict)
+      .filter((arcPlaceInfo) => !arcPlaceInfo.isInhibitorArc) // Filter out inhibitorArcs
+      .flatMap((arcPlaceInfo) =>
+        Object.entries(arcPlaceInfo.dataClassInfoDict).map(
+          ([getDataClassById, dataClassInfo]) =>
+            getDataClassKey(
+              getDataClassById,
+              dataClassInfo.alias,
+              dataClassInfo.isVariable,
+            ),
+        ),
+      ),
+  );
+}

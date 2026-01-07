@@ -7,8 +7,11 @@ import {
   hasMismatchedVariableTypes,
   hasUnboundOutputVariables,
 } from "./bindingUtilsEarlyReturnLogic";
+import { getNonInhibitorArcs } from "./bindingUtilsHelper";
+import { filterBindingsByInhibitors } from "./bindingUtilsInhibitorLogic";
 import {
   cartesianProductBindings,
+  expandBindings,
   getBiggestLinks,
   getBindingsForLink,
   getDataClassesNotInLinks,
@@ -42,12 +45,14 @@ export function getValidInputBindings(
   }
 
   // Step 2: get biggest exclusive links, link tokens per place, placeId per dataClass alias
-  const [biggestLinks, allLinks] = getBiggestLinks(arcPlaceInfoDict);
-  const tokenPerLink = getTokenPerLink(arcPlaceInfoDict);
+  const nonInhibitorArcs = getNonInhibitorArcs(arcPlaceInfoDict);
+
+  const [biggestLinks, allLinks] = getBiggestLinks(nonInhibitorArcs);
+  const tokenPerLink = getTokenPerLink(nonInhibitorArcs);
 
   // Step 3: compute bindings
   const bindingPerDataClassFromNonLinkingArcs =
-    getBindingPerDataClassFromNonLinkingArcs(arcPlaceInfoDict);
+    getBindingPerDataClassFromNonLinkingArcs(nonInhibitorArcs);
 
   if (biggestLinks.length == 0) {
     // Step 3.1: no links exist, return only bindings from non-linking arcs
@@ -87,22 +92,27 @@ export function getValidInputBindings(
     validInputBindings = cartesianProductBindings(bindingCandidatesPerLink);
   }
 
-  console.log("before inhibtor arc");
-  console.log(validInputBindings);
+  // Step 3.3: Expand bindings to individual token combinations
+  // This ensures each binding represents one specific firing option
+  validInputBindings = expandBindings(validInputBindings);
 
-  // TODO: implement inhibitor arc logic to remove blocked bindings
+  // Warn if expansion created too many bindings
+  if (validInputBindings.length > 1000) {
+    console.warn(
+      `Transition ${transition.id} has ${validInputBindings.length} bindings. ` +
+        `This may impact performance. Consider reducing variable arc token counts.`,
+    );
+  }
+
+  console.log("Valid bindings before inhibitor", validInputBindings);
+
   // Step 4: eliminate bindings blocked by inhibitors
-  // if inhibitor dataclasses do not exist, inhibitor arc can be skipped
-  // build biggest links
-  // if biggest links already exist, remove tokens
+  validInputBindings = filterBindingsByInhibitors(
+    validInputBindings,
+    arcPlaceInfoDict,
+  );
 
-  // Example: [I: 1,2,3, O: 1,2,3]
-  // inhibitor arcs: I2,O3 + I2,O2
-
-  // My idea: same logic as links: find biggest inhibitor links, compute inhibitor bindings per inhibitor link
-  // Then treat them like normal links (which means only one value per non variable arc per binding)
-  // and remove bindings that match any inhibitor binding
-  // -> output: [I: 1, O: 1], [I: 1, O: 2], [I: 1, O: 3], [I: 2, O: 1], [I: 3, O: 1], [I: 3, O: 2], [I: 3, O: 3]
+  console.log("Valid bindings after inhibitor", validInputBindings);
 
   // Step 5: check for ExactSubsetSynchro constraint
   // ** more magic **

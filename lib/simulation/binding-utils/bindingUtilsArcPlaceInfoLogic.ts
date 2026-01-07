@@ -19,6 +19,13 @@ export function buildArcPlaceInfoDict(incomingArcs: Arc[]): ArcPlaceInfoDict {
   const existingDataClassCombinations: { [key: string]: string } = {};
   for (const arc of incomingArcs) {
     const arcPlaceInfo = buildArcPlaceInfo(arc);
+
+    // Never merge inhibitor arcs
+    if (arcPlaceInfo.isInhibitorArc) {
+      arcPlaceInfoDict[arc.id] = arcPlaceInfo;
+      continue;
+    }
+
     const dataClassCombination = createDataClassCombinationKeyFromDict(
       arcPlaceInfo.dataClassInfoDict,
     );
@@ -193,7 +200,8 @@ export function getBindingPerDataClassFromNonLinkingArcs(
 ): BindingPerDataClass {
   const bindingCandidatesPerDataClass: BindingPerDataClass = {};
   for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
-    if (arcPlaceInfo.isLinkingPlace) continue;
+    if (arcPlaceInfo.isLinkingPlace || arcPlaceInfo.isInhibitorArc) continue;
+
     for (const [dataClassId, dataClassInfo] of Object.entries(
       arcPlaceInfo.dataClassInfoDict,
     )) {
