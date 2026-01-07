@@ -28,6 +28,7 @@ interface ArcPlaceInfo {
   tokens: Token[];
   isInhibitorArc: boolean;
   isLinkingPlace: boolean;
+  isExactSyncing: boolean;
   variableClass: DataClass | undefined;
   dataClassInfoDict: {
     [dataClassId: string]: DataClassInfo;

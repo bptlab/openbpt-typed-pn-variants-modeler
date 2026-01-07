@@ -7,6 +7,7 @@ import {
   hasMismatchedVariableTypes,
   hasUnboundOutputVariables,
 } from "./bindingUtilsEarlyReturnLogic";
+import { checkExactSynchroConstraints } from "./bindingUtilsExactSynchro";
 import {
   cartesianProductBindings,
   getBiggestLinks,
@@ -89,23 +90,27 @@ export function getValidInputBindings(
 
   console.log("before inhibtor arc");
   console.log(validInputBindings);
-
+  
   // TODO: implement inhibitor arc logic to remove blocked bindings
   // Step 4: eliminate bindings blocked by inhibitors
   // if inhibitor dataclasses do not exist, inhibitor arc can be skipped
   // build biggest links
   // if biggest links already exist, remove tokens
-
+  
   // Example: [I: 1,2,3, O: 1,2,3]
   // inhibitor arcs: I2,O3 + I2,O2
-
+  
   // My idea: same logic as links: find biggest inhibitor links, compute inhibitor bindings per inhibitor link
   // Then treat them like normal links (which means only one value per non variable arc per binding)
   // and remove bindings that match any inhibitor binding
   // -> output: [I: 1, O: 1], [I: 1, O: 2], [I: 1, O: 3], [I: 2, O: 1], [I: 3, O: 1], [I: 3, O: 2], [I: 3, O: 3]
-
+  
   // Step 5: check for ExactSubsetSynchro constraint
-  // ** more magic **
+  console.log("Transition", transition.id);
+  validInputBindings = checkExactSynchroConstraints(
+    arcPlaceInfoDict,
+    validInputBindings,
+  );
 
   return validInputBindings;
 }

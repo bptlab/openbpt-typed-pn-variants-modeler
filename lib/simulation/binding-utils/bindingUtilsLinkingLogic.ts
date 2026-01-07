@@ -1,3 +1,4 @@
+import { group } from "console";
 import {
   createDataClassCombinationKeyFromDict,
   createDataClassCombinationKeyFromLink,
@@ -234,44 +235,10 @@ export function getBindingsForLink(
     biggestLinkTokens.push(...getLinkToken(associatedLinks, tokenPerLink));
   }
   // group tokens by unique links of non variable dataclasses
-  const groupedTokens: { [key: string]: BindingPerDataClass } = {};
-  for (const token of biggestLinkTokens) {
-    let groupKey = "";
-    for (const linkElement of link) {
-      if (!linkElement.isVariable) {
-        const dataClassKey = getDataClassKey(
-          linkElement.id,
-          linkElement.alias,
-          linkElement.isVariable,
-        );
-        groupKey += `${dataClassKey}:${token[dataClassKey]}::`;
-      }
-    }
-    groupKey = groupKey.endsWith("::") ? groupKey.slice(0, -2) : groupKey;
-    if (!groupedTokens[groupKey]) {
-      groupedTokens[groupKey] = {};
-      for (const linkElement of link) {
-        const dataClassKey = getDataClassKey(
-          linkElement.id,
-          linkElement.alias,
-          linkElement.isVariable,
-        );
-        groupedTokens[groupKey][dataClassKey] = linkElement.isVariable
-          ? []
-          : [token[dataClassKey]];
-      }
-    }
-    for (const linkElement of link) {
-      if (linkElement.isVariable) {
-        const dataClassKey = getDataClassKey(
-          linkElement.id,
-          linkElement.alias,
-          linkElement.isVariable,
-        );
-        groupedTokens[groupKey][dataClassKey].push(token[dataClassKey]);
-      }
-    }
-  }
+  const groupedTokens = groupTokensByNonVariableDataclasses(
+    link,
+    biggestLinkTokens,
+  );
 
   // Step 2: create bindings for the link
   const bindings: BindingPerDataClass[] = [];
@@ -407,6 +374,64 @@ function mergeLinkToken(
   }
 
   return mergedLinkTokens;
+}
+
+/**
+ * Groups tokens by combinations of non-variable dataclasses defined in the given link.
+ *
+ * For each token, constructs a group key based on the values of all non-variable link elements.
+ * Tokens sharing the same combination of non-variable dataclass values are grouped together.
+ * The resulting object maps each unique group key to a binding object, where each key is a dataclass key
+ * and the value is an array of token values for variable dataclasses, or a single-element array for non-variable dataclasses.
+ *
+ * @param link - An array of link elements describing the dataclasses and whether they are variables.
+ * @param tokens - An array of tokens to be grouped according to the non-variable dataclasses in the link.
+ * @returns An object mapping each unique combination of non-variable dataclass values (as a string key)
+ *          to a binding object, which maps dataclass keys to arrays of token values.
+ */
+export function groupTokensByNonVariableDataclasses(
+  link: Link,
+  tokens: Token[],
+): { [dataClassCombinationKey: string]: BindingPerDataClass } {
+  const groupedTokens: { [key: string]: BindingPerDataClass } = {};
+  for (const token of tokens) {
+    let groupKey = "";
+    for (const linkElement of link) {
+      if (!linkElement.isVariable) {
+        const dataClassKey = getDataClassKey(
+          linkElement.id,
+          linkElement.alias,
+          linkElement.isVariable,
+        );
+        groupKey += `${dataClassKey}:${token[dataClassKey]}::`;
+      }
+    }
+    groupKey = groupKey.endsWith("::") ? groupKey.slice(0, -2) : groupKey;
+    if (!groupedTokens[groupKey]) {
+      groupedTokens[groupKey] = {};
+      for (const linkElement of link) {
+        const dataClassKey = getDataClassKey(
+          linkElement.id,
+          linkElement.alias,
+          linkElement.isVariable,
+        );
+        groupedTokens[groupKey][dataClassKey] = linkElement.isVariable
+          ? []
+          : [token[dataClassKey]];
+      }
+    }
+    for (const linkElement of link) {
+      if (linkElement.isVariable) {
+        const dataClassKey = getDataClassKey(
+          linkElement.id,
+          linkElement.alias,
+          linkElement.isVariable,
+        );
+        groupedTokens[groupKey][dataClassKey].push(token[dataClassKey]);
+      }
+    }
+  }
+  return groupedTokens;
 }
 
 /**

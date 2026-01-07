@@ -171,10 +171,11 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
     arcId: arc.id,
     placeId: place.id,
     tokens: customMarking,
-    isInhibitorArc,
+    isInhibitorArc: isInhibitorArc,
     isLinkingPlace: Object.keys(dataClassInfoDict).length > 1,
-    variableClass,
-    dataClassInfoDict,
+    isExactSyncing: false, // TODO: implement exact synchronization logic
+    variableClass: variableClass,
+    dataClassInfoDict: dataClassInfoDict,
   };
 }
 
