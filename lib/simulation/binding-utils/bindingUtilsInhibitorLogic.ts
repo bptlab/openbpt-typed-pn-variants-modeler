@@ -1,5 +1,6 @@
 import {
   getAllIncomingDataClassKeys,
+  getBaseDataClassKey,
   getDataClassKey,
 } from "./bindingUtilsHelper";
 import {
@@ -36,14 +37,20 @@ function getInhibitorArcs(
   arcPlaceInfo: ArcPlaceInfo,
   incomingDataClassKeys: Set<string>,
 ): boolean {
+  const incomingBaseKeys = new Set(
+    Array.from(incomingDataClassKeys).map(getBaseDataClassKey),
+  );
+
   return Object.entries(arcPlaceInfo.dataClassInfoDict).some(
     ([dataClassId, dataClassInfo]) => {
-      const dataClassKey = getDataClassKey(
-        dataClassId,
-        dataClassInfo.alias,
-        dataClassInfo.isVariable,
+      const baseKey = getBaseDataClassKey(
+        getDataClassKey(
+          dataClassId,
+          dataClassInfo.alias,
+          dataClassInfo.isVariable,
+        ),
       );
-      return incomingDataClassKeys.has(dataClassKey);
+      return incomingBaseKeys.has(baseKey);
     },
   );
 }
@@ -70,11 +77,18 @@ function getInhibitorBindings(
     // No links in inhibitor arcs - treat each arc independently
     inhibitorBindings = [];
 
+    // TODO: Ask Max if inhibitor bindings should include differentiation between variable arcs or not
+    const incomingBaseKeys = new Set(
+      Array.from(incomingDataClassKeys).map(getBaseDataClassKey),
+    );
+
     for (const arcPlaceInfo of Object.values(relevantInhibitorArcs)) {
       for (const token of arcPlaceInfo.tokens) {
         const filteredToken: BindingPerDataClass = {};
         for (const [dataClassKey, value] of Object.entries(token)) {
-          if (incomingDataClassKeys.has(dataClassKey)) {
+          const baseKey = getBaseDataClassKey(dataClassKey);
+
+          if (incomingBaseKeys.has(baseKey)) {
             filteredToken[dataClassKey] = [value];
           }
         }
@@ -149,10 +163,18 @@ function isBindingBlocked(
   return inhibitorBindings.some((inhibitorBinding) => {
     // Check if ALL data classes in the inhibitor match the binding
     return Object.entries(inhibitorBinding).every(
-      ([dataClassKey, inhibitorValues]) => {
-        if (!binding[dataClassKey]) return false;
+      ([inhibitorDataClassKey, inhibitorValues]) => {
+        const inhibitorBaseKey = getBaseDataClassKey(inhibitorDataClassKey);
 
-        const bindingValues = binding[dataClassKey];
+        // Find matching data class in binding (could be variable or non-variable)
+        const matchingBindingKey = Object.keys(binding).find(
+          (bindingKey) => getBaseDataClassKey(bindingKey) === inhibitorBaseKey,
+        );
+
+        // If binding doesn't have this data class at all, it's not blocked
+        if (!matchingBindingKey) return false;
+
+        const bindingValues = binding[matchingBindingKey];
 
         // For the inhibitor to block this binding, the binding must contain
         // ALL values specified in the inhibitor (subset check)

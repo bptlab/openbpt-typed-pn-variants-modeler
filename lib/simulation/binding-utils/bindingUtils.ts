@@ -92,6 +92,8 @@ export function getValidInputBindings(
     validInputBindings = cartesianProductBindings(bindingCandidatesPerLink);
   }
 
+  console.log("Before expansion", validInputBindings);
+
   // Step 3.3: Expand bindings to individual token combinations
   // This ensures each binding represents one specific firing option
   validInputBindings = expandBindings(validInputBindings);
