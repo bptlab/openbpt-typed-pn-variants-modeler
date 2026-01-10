@@ -7,11 +7,12 @@ import {
   hasMismatchedVariableTypes,
   hasUnboundOutputVariables,
 } from "./bindingUtilsEarlyReturnLogic";
-import { getNonInhibitorArcs } from "./bindingUtilsHelper";
-import { filterBindingsByInhibitors } from "./bindingUtilsInhibitorLogic";
+import { 
+  getNonInhibitorArcs,
+  filterBindingsByInhibitors
+} from "./bindingUtilsInhibitorLogic";
 import {
   cartesianProductBindings,
-  expandBindings,
   getBiggestLinks,
   getBindingsForLink,
   getDataClassesNotInLinks,
@@ -91,22 +92,6 @@ export function getValidInputBindings(
     // Create Cartesian product of all bindingCandidatesPerLink
     validInputBindings = cartesianProductBindings(bindingCandidatesPerLink);
   }
-
-  console.log("Before expansion", validInputBindings);
-
-  // Step 3.3: Expand bindings to individual token combinations
-  // This ensures each binding represents one specific firing option
-  validInputBindings = expandBindings(validInputBindings);
-
-  // Warn if expansion created too many bindings
-  if (validInputBindings.length > 1000) {
-    console.warn(
-      `Transition ${transition.id} has ${validInputBindings.length} bindings. ` +
-        `This may impact performance. Consider reducing variable arc token counts.`,
-    );
-  }
-
-  console.log("Valid bindings before inhibitor", validInputBindings);
 
   // Step 4: eliminate bindings blocked by inhibitors
   validInputBindings = filterBindingsByInhibitors(
