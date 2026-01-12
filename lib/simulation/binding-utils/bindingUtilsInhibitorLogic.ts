@@ -46,8 +46,8 @@ function getInhibitorArcs(
  * @param arcPlaceInfo - The arc-place information to check.
  * @param incomingDataClassKeys - Set of all data class keys from incoming arcs (excluding inhibitor arcs).
  * @returns `true` if all data classes from the arc exist in incoming arcs; otherwise, `false`.
- */ 
-function isRelevant(  
+ */
+function isRelevant(
   arcPlaceInfo: ArcPlaceInfo,
   incomingDataClassKeys: Set<string>,
 ): boolean {
@@ -56,6 +56,7 @@ function isRelevant(
   }
 
   if (arcPlaceInfo.isLinkingPlace) {
+    console.warn("Inhibitor arcs with more than one data class are not supported.");
     return false;
   }
 
@@ -104,7 +105,7 @@ function getRelevantDataClassKeys(
           dataClassInfo.isVariable,
         )
       );
-      
+
       // if (incomingDataClassKeys.has(baseKey + ":true")) {
       //   relevantDataClassKeys.add(baseKey + ":true");
       // }
@@ -137,7 +138,7 @@ function expandBindings(
   relevantDataClassKeys: Set<string>,
 ): BindingPerDataClass[] {
   const expandedBindings: BindingPerDataClass[] = [];
-  
+
   // For each binding, expand non-variable relevant data classes to single-value combinations
   for (const binding of bindings) {
     // Separate variable and non-variable relevant data classes
@@ -157,9 +158,9 @@ function expandBindings(
     function cartesianProduct<T>(arrays: T[][]): T[][] {
       if (arrays.length === 0) return [[]];
       return arrays.reduce<T[][]>(
-      (acc, curr) =>
-        acc.flatMap((a) => curr.map((b) => [...a, b])),
-      [[]]
+        (acc, curr) =>
+          acc.flatMap((a) => curr.map((b) => [...a, b])),
+        [[]]
       );
     }
 
@@ -170,12 +171,12 @@ function expandBindings(
       // Create a new binding with single-value arrays for non-variable keys
       const newBinding: BindingPerDataClass = { ...binding };
       relevantKeys.forEach((key, idx) => {
-      newBinding[key] = [combo[idx]];
+        newBinding[key] = [combo[idx]];
       });
       expandedBindings.push(newBinding);
     }
   }
-  
+
   return expandedBindings;
 }
 
@@ -253,7 +254,7 @@ function getFilteredBindings(
         newBinding[key] = newBinding[key].filter(
           (v) => !inhibitorToken[getBaseDataClassKey(key)].includes(v)
         );
-        
+
         if (newBinding[key].length === 0) {
           hasEmpty = true;
           break;
@@ -267,7 +268,7 @@ function getFilteredBindings(
 
   // Remove bindings that are subsets of other bindings
   return filteredBindings
-  
+
   // For usage with power set, run the subset filter
   // return filteredBindings.filter((candidate, idx, arr) => {
   //   return !arr.some((other, j) => {
@@ -308,7 +309,7 @@ export function filterBindingsByInhibitors(
   arcPlaceInfoDict: ArcPlaceInfoDict,
 ): BindingPerDataClass[] {
   const inhibitorArcs = getInhibitorArcs(arcPlaceInfoDict);
-  
+
   // Get all incoming data classes (excluding inhibitor arcs)
   const incomingDataClassKeys = getAllDataClassKeysFromArcs(
     getNonInhibitorArcs(arcPlaceInfoDict)
@@ -325,12 +326,12 @@ export function filterBindingsByInhibitors(
       isRelevant(arcPlaceInfo, incomingDataClassKeys),
     ),
   );
-  
+
   // Early return: if no relevant inhibitor arcs exist, return original bindings
   if (Object.keys(relevantInhibitorArcs).length === 0) {
     return bindings;
   }
-  
+
 
   // TODO: Check if necessary. If we really dont want to deal with link inhibitor arcs, this is not necessary
   // const relevantDataClassKeys = getRelevantDataClassKeys(
