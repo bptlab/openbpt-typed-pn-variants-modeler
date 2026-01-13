@@ -15,12 +15,14 @@ export function hasUnboundOutputVariables(
   incomingArcs: Arc[],
   outgoingArcs: Arc[],
 ): boolean {
+  incomingArcs = incomingArcs.filter((arc) => !arc.businessObject.isInhibitorArc);
+  outgoingArcs = outgoingArcs.filter((arc) => !arc.businessObject.isInhibitorArc);
   function getDataClassKeysFromArcs(arcs: Arc[], ignoreGenerated: boolean): Set<string> {
     const dataClassKeys = new Set<string>();
     for (const arc of arcs) {
       const inscriptionElements =
         arc.businessObject.inscription?.inscriptionElements || [];
-      const variableType = arc.businessObject.variableType || {id: "", alias: ""};
+      const variableType = arc.businessObject.variableType || { id: "", alias: "" };
       for (const el of inscriptionElements) {
         if (ignoreGenerated && el.isGenerated) continue;
         dataClassKeys.add(getDataClassKey(
