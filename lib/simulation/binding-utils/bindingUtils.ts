@@ -4,10 +4,9 @@ import {
 } from "./bindingUtilsArcPlaceInfoLogic";
 import {
   hasAvailableTokensForAllArcs,
-  hasMismatchedVariableTypes,
   hasUnboundOutputVariables,
 } from "./bindingUtilsEarlyReturnLogic";
-import { 
+import {
   getNonInhibitorArcs,
   filterBindingsByInhibitors
 } from "./bindingUtilsInhibitorLogic";
@@ -26,13 +25,7 @@ export function getValidInputBindings(
 
   // Early return: unbound output variables
   if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
-    // console.log("Transition ${transition.id} has unbound output variables.");
-    return [];
-  }
-
-  // Early return: mismatched variable types
-  if (hasMismatchedVariableTypes(transition.incoming, transition.outgoing)) {
-    // console.log("Transition ${transition.id} has mismatched variable types.");
+    // console.log(`Transition ${transition.id} has unbound output variables.`);
     return [];
   }
 
@@ -41,7 +34,7 @@ export function getValidInputBindings(
 
   // Early return: missing tokens in non-inhibitor arcs
   if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
-    // console.log("Transition ${transition.id} has missing tokens in non-inhibitor arcs.");
+    // console.log(`Transition ${transition.id} has missing tokens in non-inhibitor arcs.`);
     return [];
   }
 
