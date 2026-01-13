@@ -220,18 +220,12 @@ export function filterBindingsByInhibitors(
     return bindings;
   }
 
-  console.log("Bindings:", bindings);
-
   // Get inhibitor tokens as bindings
   const inhibitorTokens = getInhibitorTokens(relevantInhibitorArcs);
-
-  console.log("Inhibitor tokens", inhibitorTokens);
 
   // Filter out tokenvalues that are part of inhibitor tokens
   // If any array becomes empty, the binding is removed
   const filteredBindings = getFilteredBindings(bindings, inhibitorTokens);
-
-  console.log("Filtered bindings:", filteredBindings);
 
   return filteredBindings;
 }

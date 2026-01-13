@@ -92,8 +92,6 @@ export function getValidInputBindings(
     arcPlaceInfoDict,
   );
 
-  console.log("Valid bindings after inhibitor", validInputBindings);
-
   // Step 5: check for ExactSubsetSynchro constraint
   // ** more magic **
 
