@@ -158,9 +158,9 @@ export function getAllDataClassKeysFromArcs(
     Object.values(arcPlaceInfoDict)
       .flatMap((arcPlaceInfo) =>
         Object.entries(arcPlaceInfo.dataClassInfoDict).map(
-          ([getDataClassById, dataClassInfo]) =>
+          ([dataClassId, dataClassInfo]) =>
             getDataClassKey(
-              getDataClassById,
+              dataClassId,
               dataClassInfo.alias,
               dataClassInfo.isVariable,
             ),

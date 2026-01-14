@@ -169,7 +169,6 @@ function getFilteredBindings(
       }
     }
     filteredBindings = newBindings;
-    newBindings = [];
   }
 
   return filteredBindings;
