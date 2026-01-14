@@ -7,6 +7,10 @@ import {
   hasUnboundOutputVariables,
 } from "./bindingUtilsEarlyReturnLogic";
 import {
+  getNonInhibitorArcs,
+  filterBindingsByInhibitors
+} from "./bindingUtilsInhibitorLogic";
+import {
   cartesianProductBindings,
   getBiggestLinks,
   getBindingsForLink,
@@ -35,12 +39,14 @@ export function getValidInputBindings(
   }
 
   // Step 2: get biggest exclusive links, link tokens per place, placeId per dataClass alias
-  const [biggestLinks, allLinks] = getBiggestLinks(arcPlaceInfoDict);
-  const tokenPerLink = getTokenPerLink(arcPlaceInfoDict);
+  const nonInhibitorArcs = getNonInhibitorArcs(arcPlaceInfoDict);
+
+  const [biggestLinks, allLinks] = getBiggestLinks(nonInhibitorArcs);
+  const tokenPerLink = getTokenPerLink(nonInhibitorArcs);
 
   // Step 3: compute bindings
   const bindingPerDataClassFromNonLinkingArcs =
-    getBindingPerDataClassFromNonLinkingArcs(arcPlaceInfoDict);
+    getBindingPerDataClassFromNonLinkingArcs(nonInhibitorArcs);
 
   if (biggestLinks.length == 0) {
     // Step 3.1: no links exist, return only bindings from non-linking arcs
@@ -80,19 +86,11 @@ export function getValidInputBindings(
     validInputBindings = cartesianProductBindings(bindingCandidatesPerLink);
   }
 
-  // TODO: implement inhibitor arc logic to remove blocked bindings
   // Step 4: eliminate bindings blocked by inhibitors
-  // if inhibitor dataclasses do not exist, inhibitor arc can be skipped
-  // build biggest links
-  // if biggest links already exist, remove tokens
-
-  // Example: [I: 1,2,3, O: 1,2,3]
-  // inhibitor arcs: I2,O3 + I2,O2
-
-  // My idea: same logic as links: find biggest inhibitor links, compute inhibitor bindings per inhibitor link
-  // Then treat them like normal links (which means only one value per non variable arc per binding)
-  // and remove bindings that match any inhibitor binding
-  // -> output: [I: 1, O: 1], [I: 1, O: 2], [I: 1, O: 3], [I: 2, O: 1], [I: 3, O: 1], [I: 3, O: 2], [I: 3, O: 3]
+  validInputBindings = filterBindingsByInhibitors(
+    validInputBindings,
+    arcPlaceInfoDict,
+  );
 
   // Step 5: check for ExactSubsetSynchro constraint
   // ** more magic **
