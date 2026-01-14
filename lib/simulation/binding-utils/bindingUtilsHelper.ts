@@ -64,6 +64,20 @@ export function getDataClassKey(
 }
 
 /**
+ * Extracts the base data class identifier without variable flag.
+ * @param dataClassKey - Full key like "DataClass_2:I:false" or "DataClass_2:I:true"
+ * @returns Base key like "DataClass_2:I"
+ */
+export function getBaseDataClassKey(dataClassKey: string): string {
+  // Remove the last part (":true" or ":false")
+  const parts = dataClassKey.split(":");
+  if (parts.length >= 2) {
+    return parts.slice(0, -1).join(":");
+  }
+  return dataClassKey;
+}
+
+/**
  * Generates a unique string key representing a combination of data classes.
  *
  * The key is constructed by iterating over the entries of the provided `dataClassInfoDict`,
@@ -129,4 +143,45 @@ export function createDataClassCombinationKeyFromLink(link: Link): string {
 export function getDataClassFromKey(dataClassKey: string): DataClass {
   const [id, alias, isVariableStr] = dataClassKey.split(":");
   return { id, alias };
+}
+
+/**
+ * Returns the set of all incoming dataClassKeys excluding inhibitor arcs.
+ *
+ * @param arcPlaceInfoDict - A dictionary mapping arc-place identifiers to their corresponding information, including tokens and inhibitor status.
+ * @returns A complete set of dataClassKeys.
+ */
+export function getAllDataClassKeysFromArcs(
+  arcPlaceInfoDict: ArcPlaceInfoDict,
+): Set<string> {
+  return new Set(
+    Object.values(arcPlaceInfoDict)
+      .flatMap((arcPlaceInfo) =>
+        Object.entries(arcPlaceInfo.dataClassInfoDict).map(
+          ([dataClassId, dataClassInfo]) =>
+            getDataClassKey(
+              dataClassId,
+              dataClassInfo.alias,
+              dataClassInfo.isVariable,
+            ),
+        ),
+      ),
+  );
+}
+
+/**
+ * Flattens a binding from { dataClassKey: [values] } to [{ dataClassKey: value }]
+ * @param {BindingPerDataClass} binding - Binding with array values per data class
+ * @returns {Array} Array of single key-value objects for execution
+ */
+export function flattenBinding(
+  binding: BindingPerDataClass,
+): Array<{ [dataClassKey: string]: string }> {
+  const flattened: { [dataClassKey: string]: string }[] = [];
+  for (const [dataClassKey, values] of Object.entries(binding)) {
+    values.forEach((value) => {
+      flattened.push({ [dataClassKey]: value });
+    });
+  }
+  return flattened;
 }
