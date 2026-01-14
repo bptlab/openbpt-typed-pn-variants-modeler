@@ -34,8 +34,9 @@ export function checkExactSynchroConstraints(
       arcPlaceInfo.tokens,
     );
 
-    validInputBindings = validInputBindings.filter((inputBinding) => {
-      // For each group, binding must include all or none of the token values for every data class in the group
+    
+    let filteredBindings: BindingPerDataClass[] = [ ...validInputBindings ];
+    for (const inputBinding of validInputBindings) {
       for (const arcBinding of Object.values(groupedTokens)) {
         for (const dataClassKey of Object.keys(arcBinding)) {
           const tokenValues = arcBinding[dataClassKey];
@@ -46,14 +47,50 @@ export function checkExactSynchroConstraints(
           const hasAll = tokenValues.every((tokenValue) =>
             bindingValues.includes(tokenValue),
           );
-          if (hasAny && !hasAll) {
+          if (!hasAny) {
+            // None included, keep binding as is
+            filteredBindings.push(inputBinding);
+            continue;
+          }
+          else if (hasAny && !hasAll) {
             // Partially included, exclude binding
-            return false;
+            continue;
+          }
+          else if (hasAll) {
+            // All included, keep binding with exact marking
+            
+            // TODO: mark token values for exact synchro
+            filteredBindings.push(inputBinding);
           }
         }
       }
-      return true;
+    }
+  // } 
+  // return filteredBindings;
+
+
+    // To be deleted ---------------
+    validInputBindings = validInputBindings.filter((inputBinding) => {
+    // For each group, binding must include all or none of the token values for every data class in the group
+    for (const arcBinding of Object.values(groupedTokens)) {
+      for (const dataClassKey of Object.keys(arcBinding)) {
+        const tokenValues = arcBinding[dataClassKey];
+        const bindingValues = inputBinding[dataClassKey] ?? [];
+        const hasAny = tokenValues.some((tokenValue) =>
+          bindingValues.includes(tokenValue),
+        );
+        const hasAll = tokenValues.every((tokenValue) =>
+          bindingValues.includes(tokenValue),
+        );
+        if (hasAny && !hasAll) {
+          // Partially included, exclude binding
+          return false;
+        }
+      }
+    }
+    return true;
     });
   }
   return validInputBindings;
+// To be deleted ---------------
 }
