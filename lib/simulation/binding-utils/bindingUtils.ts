@@ -4,7 +4,6 @@ import {
 } from "./bindingUtilsArcPlaceInfoLogic";
 import {
   hasAvailableTokensForAllArcs,
-  hasMismatchedVariableTypes,
   hasUnboundOutputVariables,
 } from "./bindingUtilsEarlyReturnLogic";
 import { checkExactSynchroConstraints } from "./bindingUtilsExactSynchro";
@@ -23,13 +22,7 @@ export function getValidInputBindings(
 
   // Early return: unbound output variables
   if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
-    // console.log("Transition ${transition.id} has unbound output variables.");
-    return [];
-  }
-
-  // Early return: mismatched variable types
-  if (hasMismatchedVariableTypes(transition.incoming, transition.outgoing)) {
-    // console.log("Transition ${transition.id} has mismatched variable types.");
+    // console.log(`Transition ${transition.id} has unbound output variables.`);
     return [];
   }
 
@@ -38,7 +31,7 @@ export function getValidInputBindings(
 
   // Early return: missing tokens in non-inhibitor arcs
   if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
-    // console.log("Transition ${transition.id} has missing tokens in non-inhibitor arcs.");
+    // console.log(`Transition ${transition.id} has missing tokens in non-inhibitor arcs.`);
     return [];
   }
 
@@ -87,9 +80,6 @@ export function getValidInputBindings(
     // Create Cartesian product of all bindingCandidatesPerLink
     validInputBindings = cartesianProductBindings(bindingCandidatesPerLink);
   }
-
-  console.log("before inhibtor arc");
-  console.log(validInputBindings);
 
   // TODO: implement inhibitor arc logic to remove blocked bindings
   // Step 4: eliminate bindings blocked by inhibitors
