@@ -1,3 +1,4 @@
+import { getLinkPartFromDataClassKey } from "./bindingUtilsHelper";
 import { groupTokensByNonVariableDataclasses } from "./bindingUtilsLinkingLogic";
 
 /**
@@ -17,59 +18,25 @@ import { groupTokensByNonVariableDataclasses } from "./bindingUtilsLinkingLogic"
 export function checkExactSynchroConstraints(
   arcPlaceInfoDict: ArcPlaceInfoDict,
   validInputBindings: BindingPerDataClass[],
-): BindingPerDataClass[] {
+): BindingPerDataClassWithSynchro[] {
+  let synchedInputBindings: BindingPerDataClassWithSynchro[] = [];
+
   const exactSynchroArcPlaceInfos = Object.values(arcPlaceInfoDict).filter(
     (arcPlaceInfo) => arcPlaceInfo.isExactSyncing,
   );
 
   for (const arcPlaceInfo of exactSynchroArcPlaceInfos) {
     const groupedTokens = groupTokensByNonVariableDataclasses(
-      Object.entries(arcPlaceInfo.dataClassInfoDict).map(
-        ([dataClassId, dataClassInfo]) => ({
-          id: dataClassId,
-          alias: dataClassInfo.alias,
-          isVariable: dataClassInfo.isVariable,
-        }),
+      Object.keys(arcPlaceInfo.dataClassInfoDict).map(
+        (dataClassKey) => getLinkPartFromDataClassKey(dataClassKey),
       ),
       arcPlaceInfo.tokens,
     );
 
+    console.log("groupedTokens", groupedTokens);
+
     
-    let filteredBindings: BindingPerDataClass[] = [ ...validInputBindings ];
-    for (const inputBinding of validInputBindings) {
-      for (const arcBinding of Object.values(groupedTokens)) {
-        for (const dataClassKey of Object.keys(arcBinding)) {
-          const tokenValues = arcBinding[dataClassKey];
-          const bindingValues = inputBinding[dataClassKey] ?? [];
-          const hasAny = tokenValues.some((tokenValue) =>
-            bindingValues.includes(tokenValue),
-          );
-          const hasAll = tokenValues.every((tokenValue) =>
-            bindingValues.includes(tokenValue),
-          );
-          if (!hasAny) {
-            // None included, keep binding as is
-            filteredBindings.push(inputBinding);
-            continue;
-          }
-          else if (hasAny && !hasAll) {
-            // Partially included, exclude binding
-            continue;
-          }
-          else if (hasAll) {
-            // All included, keep binding with exact marking
-            
-            // TODO: mark token values for exact synchro
-            filteredBindings.push(inputBinding);
-          }
-        }
-      }
-    }
-  // } 
-  // return filteredBindings;
 
-
-    // To be deleted ---------------
     validInputBindings = validInputBindings.filter((inputBinding) => {
     // For each group, binding must include all or none of the token values for every data class in the group
     for (const arcBinding of Object.values(groupedTokens)) {
@@ -88,9 +55,20 @@ export function checkExactSynchroConstraints(
         }
       }
     }
+    for (const [dataClassKey, tokenValues] of Object.entries(inputBinding)) {
+      synchedInputBindings.push({
+        DataClassKey: dataClassKey,
+        isExactSync: true,
+        values: arcPlaceInfo.dataClassInfoDict[dataClassKey] ?? [],
+      });
+      synchedInputBindings.push({
+        DataClassKey: dataClassKey,
+        isExactSync: false,
+        values: tokenValues.filter((value => !(arcPlaceInfo.dataClassInfoDict[dataClassKey] ?? []).includes(value))),
+      });
+    }
     return true;
     });
   }
-  return validInputBindings;
-// To be deleted ---------------
+  return synchedInputBindings;
 }

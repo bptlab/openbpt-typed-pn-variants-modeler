@@ -89,18 +89,13 @@ export function getBaseDataClassKey(dataClassKey: string): string {
  * @returns A string key uniquely identifying the combination of data classes and their properties.
  */
 export function createDataClassCombinationKeyFromDict(dataClassInfoDict: {
-  [dataClassId: string]: DataClassInfo;
+  [dataClassKey: string]: string[];
 }): string {
   let key: string = "";
-  for (const [dataClassId, dataClassInfo] of Object.entries(
+  for (const dataClassKey of Object.keys(
     dataClassInfoDict,
   ).sort()) {
-    key +=
-      getDataClassKey(
-        dataClassId,
-        dataClassInfo.alias,
-        dataClassInfo.isVariable,
-      ) + "::";
+    key += dataClassKey + "::";
   }
   return key.endsWith("::") ? key.slice(0, -2) : key;
 }
@@ -145,6 +140,11 @@ export function getDataClassFromKey(dataClassKey: string): DataClass {
   return { id, alias };
 }
 
+export function getLinkPartFromDataClassKey(dataClassKey: string): { id: string; alias: string; isVariable: boolean } {
+  const [id, alias, isVariableStr] = dataClassKey.split(":");
+  return { id: id, alias: alias, isVariable: isVariableStr === "true" };
+}
+
 /**
  * Returns the set of all incoming dataClassKeys excluding inhibitor arcs.
  *
@@ -157,14 +157,7 @@ export function getAllDataClassKeysFromArcs(
   return new Set(
     Object.values(arcPlaceInfoDict)
       .flatMap((arcPlaceInfo) =>
-        Object.entries(arcPlaceInfo.dataClassInfoDict).map(
-          ([dataClassId, dataClassInfo]) =>
-            getDataClassKey(
-              dataClassId,
-              dataClassInfo.alias,
-              dataClassInfo.isVariable,
-            ),
-        ),
+        Object.keys(arcPlaceInfo.dataClassInfoDict)
       ),
   );
 }

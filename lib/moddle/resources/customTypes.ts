@@ -31,7 +31,7 @@ interface ArcPlaceInfo {
   isExactSyncing: boolean;
   variableClass: DataClass | undefined;
   dataClassInfoDict: {
-    [dataClassId: string]: DataClassInfo;
+    [dataClassKey: string]: TokenValue["value"][];
   };
 }
 
@@ -75,3 +75,5 @@ type TokenPerLink = { [dataClassCombinationKey: string]: Token[] };
  * representing the bindings related to that data class.
  */
 type BindingPerDataClass = { [DataClassKey: string]: string[] };
+
+type BindingPerDataClassWithSynchro = {DataClassKey: string, isExactSync: boolean, values: string[] };

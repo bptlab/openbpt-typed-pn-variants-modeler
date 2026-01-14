@@ -59,14 +59,10 @@ function isRelevant(
     Array.from(incomingDataClassKeys).map(getBaseDataClassKey),
   );
 
-  return Object.entries(arcPlaceInfo.dataClassInfoDict).every(
-    ([dataClassId, dataClassInfo]) => {
+  return Object.keys(arcPlaceInfo.dataClassInfoDict).every(
+    (dataClassKey) => {
       const baseKey = getBaseDataClassKey(
-        getDataClassKey(
-          dataClassId,
-          dataClassInfo.alias,
-          dataClassInfo.isVariable,
-        ),
+        dataClassKey,
       );
       return incomingBaseDataClassKeys.has(baseKey);
     },

@@ -1,7 +1,9 @@
+import { get } from "http";
 import {
   createDataClassCombinationKeyFromDict,
   createDataClassCombinationKeyFromLink,
   getDataClassKey,
+  getLinkPartFromDataClassKey,
   tokensOverlap,
 } from "./bindingUtilsHelper";
 
@@ -78,14 +80,10 @@ function getAllLinks(arcPlaceInfoDict: ArcPlaceInfoDict): Link[] {
   for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
     if (!arcPlaceInfo.isLinkingPlace) continue;
     const link: Link = [];
-    for (const [dataClassId, dataClassInfo] of Object.entries(
+    for (const dataClassKey of Object.keys(
       arcPlaceInfo.dataClassInfoDict,
     )) {
-      link.push({
-        id: dataClassId,
-        alias: dataClassInfo.alias,
-        isVariable: dataClassInfo.isVariable,
-      });
+      link.push(getLinkPartFromDataClassKey(dataClassKey));
     }
     allLinks.push(link);
   }
