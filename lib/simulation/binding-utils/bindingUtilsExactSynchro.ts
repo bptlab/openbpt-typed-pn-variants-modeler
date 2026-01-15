@@ -37,14 +37,12 @@ export function checkExactSynchroConstraints(
         for (const dataClassKey of Object.keys(arcBinding)) {
           const tokenValues = arcBinding[dataClassKey];
           const bindingValues = inputBinding[dataClassKey] ?? [];
-          const hasAny = tokenValues.some((tokenValue) =>
+          countAny += tokenValues.some((tokenValue) =>
             bindingValues.includes(tokenValue),
-          );
-          countAny += hasAny ? 1 : 0;
-          const hasAll = tokenValues.every((tokenValue) =>
+          ) ? 1 : 0;
+          countAll += tokenValues.every((tokenValue) =>
             bindingValues.includes(tokenValue),
-          );
-          countAll += hasAll ? 1 : 0;
+          ) ? 1 : 0;
         }
       }
       if (countAny === 0 || (countAny > 0 && countAny !== countAll)) {
@@ -117,5 +115,6 @@ export function checkExactSynchroConstraints(
       synchedInputBindings.push({...synchedBindings});
     }
   } 
+
   return synchedInputBindings;
 }

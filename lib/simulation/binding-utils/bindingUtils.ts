@@ -94,6 +94,7 @@ export function getValidInputBindings(
   );
 
   // Step 5: check for ExactSubsetSynchro constraint
+  // This also always enlarges the dataClassKeys to four components
   const synchedInputBindings = checkExactSynchroConstraints(
     arcPlaceInfoDict,
     filteredInputBindings,

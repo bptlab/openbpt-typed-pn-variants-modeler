@@ -1,4 +1,3 @@
-import { is } from "../../util/Util";
 import {
   createDataClassCombinationKeyFromDict,
   getDataClassFromKey,
@@ -127,7 +126,7 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
           dataClass.id, 
           element.variableName, 
           isVariable,
-        )] = []
+        )] = [];
     }
   }
   
