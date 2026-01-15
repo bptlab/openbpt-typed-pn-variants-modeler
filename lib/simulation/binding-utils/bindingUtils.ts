@@ -6,6 +6,7 @@ import {
   hasAvailableTokensForAllArcs,
   hasUnboundOutputVariables,
 } from "./bindingUtilsEarlyReturnLogic";
+import { checkExactSynchroConstraints } from "./bindingUtilsExactSynchro";
 import {
   getNonInhibitorArcs,
   filterBindingsByInhibitors
@@ -21,32 +22,32 @@ import {
 export function getValidInputBindings(
   transition: Transition,
 ): BindingPerDataClass[] {
-  let validInputBindings: BindingPerDataClass[];
-
   // Early return: unbound output variables
   if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
     // console.log(`Transition ${transition.id} has unbound output variables.`);
     return [];
   }
-
+  
   // Step 1: build arcPlaceInfoDict and tokenStructure
   const arcPlaceInfoDict = buildArcPlaceInfoDict(transition.incoming);
-
+  
   // Early return: missing tokens in non-inhibitor arcs
   if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
     // console.log(`Transition ${transition.id} has missing tokens in non-inhibitor arcs.`);
     return [];
   }
-
+  
   // Step 2: get biggest exclusive links, link tokens per place, placeId per dataClass alias
   const nonInhibitorArcs = getNonInhibitorArcs(arcPlaceInfoDict);
-
+  
   const [biggestLinks, allLinks] = getBiggestLinks(nonInhibitorArcs);
   const tokenPerLink = getTokenPerLink(nonInhibitorArcs);
-
+  
   // Step 3: compute bindings
   const bindingPerDataClassFromNonLinkingArcs =
-    getBindingPerDataClassFromNonLinkingArcs(nonInhibitorArcs);
+  getBindingPerDataClassFromNonLinkingArcs(nonInhibitorArcs);
+  
+  let validInputBindings: BindingPerDataClass[];
 
   if (biggestLinks.length == 0) {
     // Step 3.1: no links exist, return only bindings from non-linking arcs
@@ -87,15 +88,19 @@ export function getValidInputBindings(
   }
 
   // Step 4: eliminate bindings blocked by inhibitors
-  validInputBindings = filterBindingsByInhibitors(
+  const filteredInputBindings = filterBindingsByInhibitors(
     validInputBindings,
     arcPlaceInfoDict,
   );
 
   // Step 5: check for ExactSubsetSynchro constraint
-  // ** more magic **
+  // This also always enlarges the dataClassKeys to four components
+  const synchedInputBindings = checkExactSynchroConstraints(
+    arcPlaceInfoDict,
+    filteredInputBindings,
+  );
 
-  return validInputBindings;
+  return synchedInputBindings;
 }
 
 export function transitionIsEnabled(transition: Transition): boolean {

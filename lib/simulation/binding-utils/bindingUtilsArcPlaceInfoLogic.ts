@@ -28,7 +28,7 @@ export function buildArcPlaceInfoDict(incomingArcs: Arc[]): ArcPlaceInfoDict {
 
     const dataClassCombination = createDataClassCombinationKeyFromDict(
       arcPlaceInfo.dataClassInfoDict,
-    );
+    ) + `:${arcPlaceInfo.isExactSyncing}`;
     if (!existingDataClassCombinations[dataClassCombination]) {
       existingDataClassCombinations[dataClassCombination] = arc.id;
       arcPlaceInfoDict[arc.id] = arcPlaceInfo;
@@ -45,7 +45,6 @@ export function buildArcPlaceInfoDict(incomingArcs: Arc[]): ArcPlaceInfoDict {
       arcPlaceInfoDict[existingArcId].dataClassInfoDict =
         buildDataClassInfoDict(
           arcPlaceInfoDict[existingArcId].tokens,
-          arcPlaceInfoDict[existingArcId].dataClassInfoDict,
         );
     }
   }
@@ -68,24 +67,16 @@ export function buildArcPlaceInfoDict(incomingArcs: Arc[]): ArcPlaceInfoDict {
  */
 function buildDataClassInfoDict(
   tokens: Token[],
-  existingDataClassInfoDict: { [dataClassId: string]: DataClassInfo } = {},
-): { [dataClassId: string]: DataClassInfo } {
-  const dataClassInfoDict: { [dataClassId: string]: DataClassInfo } = {};
+): { [dataClassKey: string]: string[] } {
+  const dataClassInfoDict: { [dataClassKey: string]: string[] } = {};
 
   for (const token of tokens) {
     for (const [dataClassKey, value] of Object.entries(token)) {
-      const dataClass = getDataClassFromKey(dataClassKey);
-      if (!dataClassInfoDict[dataClass.id]) {
-        dataClassInfoDict[dataClass.id] = {
-          isVariable:
-            existingDataClassInfoDict[dataClass.id]?.isVariable ?? false,
-          alias: existingDataClassInfoDict[dataClass.id]?.alias ?? "",
-          tokenValues: [],
-        };
-      }
-
-      if (!dataClassInfoDict[dataClass.id].tokenValues.includes(value)) {
-        dataClassInfoDict[dataClass.id].tokenValues.push(value);
+      if (!dataClassInfoDict[dataClassKey]) {
+        dataClassInfoDict[dataClassKey] = [];
+}
+      if (!dataClassInfoDict[dataClassKey].includes(value)) {
+        dataClassInfoDict[dataClassKey].push(value);
       }
     }
   }
@@ -114,50 +105,32 @@ function buildDataClassInfoDict(
  * representation for further simulation or analysis.
  */
 function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
+
   const place: Place = arc.businessObject.source as Place;
   const isInhibitorArc: boolean = arc.businessObject.isInhibitorArc || false;
+  const isExactSyncing: boolean = arc.businessObject?.isExactSynchronization || false;
 
   const dataClassInfoDict: {
-    [dataClassId: string]: DataClassInfo;
+    [dataClassKey: string]: string[];
   } = {};
 
-  const marking = place.marking ?? [];
-
-  for (const token of marking) {
-    const tokenValues = token.values ?? [];
-    for (const { dataClass, value } of tokenValues) {
-      if (!dataClass) continue;
-
-      if (!dataClassInfoDict[dataClass.id]) {
-        dataClassInfoDict[dataClass.id] = {
-          isVariable: false,
-          alias: "",
-          tokenValues: [],
-        };
-      }
-
-      if (!dataClassInfoDict[dataClass.id].tokenValues.includes(value)) {
-        dataClassInfoDict[dataClass.id].tokenValues.push(value);
-      }
-    }
-  }
-
-  let variableClass: DataClass | undefined = undefined;
-  const arcVariableType = arc.businessObject.variableType;
+  let variableClass: DataClass | undefined = arc.businessObject.variableType;
   const inscriptionElements =
     arc.businessObject.inscription?.inscriptionElements ?? [];
   for (const element of inscriptionElements) {
     const dataClass = element.dataClass;
-    const dataClassInfo = dataClassInfoDict[dataClass.id];
-    if (dataClass?.id && dataClassInfo) {
-      if (arcVariableType === dataClass) {
-        dataClassInfo.isVariable = true;
-        variableClass = { id: dataClass.id, alias: dataClass.alias };
-      }
-      dataClassInfo.alias = element.variableName;
+    if (dataClass?.id) {
+      const isVariable = variableClass === dataClass;
+      dataClassInfoDict[
+        getDataClassKey(
+          dataClass.id, 
+          element.variableName, 
+          isVariable,
+        )] = [];
     }
   }
-
+  
+  const marking = place.marking ?? [];
   const customMarking: Token[] = [];
   for (const token of marking) {
     const tokenObj: Token = {};
@@ -167,21 +140,30 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
         getDataClassKey(
           dataClass.id,
           dataClass.alias,
-          arcVariableType === dataClass,
+          variableClass === dataClass,
         )
       ] = value;
     }
     customMarking.push(tokenObj);
   }
 
+  for (const token of customMarking) {
+    for (const [dataClassKey, value] of Object.entries(token)) {
+      if (!dataClassInfoDict[dataClassKey].includes(value)) {
+        dataClassInfoDict[dataClassKey].push(value);
+      }
+    }
+  }
+
   return {
     arcId: arc.id,
     placeId: place.id,
     tokens: customMarking,
-    isInhibitorArc,
+    isInhibitorArc: isInhibitorArc,
     isLinkingPlace: Object.keys(dataClassInfoDict).length > 1,
-    variableClass,
-    dataClassInfoDict,
+    isExactSyncing: isExactSyncing,
+    variableClass: variableClass,
+    dataClassInfoDict: dataClassInfoDict,
   };
 }
 
@@ -202,17 +184,12 @@ export function getBindingPerDataClassFromNonLinkingArcs(
   for (const arcPlaceInfo of Object.values(arcPlaceInfoDict)) {
     if (arcPlaceInfo.isLinkingPlace || arcPlaceInfo.isInhibitorArc) continue;
 
-    for (const [dataClassId, dataClassInfo] of Object.entries(
+    for (const [dataClassKey, tokenValues] of Object.entries(
       arcPlaceInfo.dataClassInfoDict,
     )) {
-      const key = getDataClassKey(
-        dataClassId,
-        dataClassInfo.alias,
-        dataClassInfo.isVariable,
-      );
-      bindingCandidatesPerDataClass[key]
-        ? bindingCandidatesPerDataClass[key].push(...dataClassInfo.tokenValues)
-        : (bindingCandidatesPerDataClass[key] = [...dataClassInfo.tokenValues]);
+      bindingCandidatesPerDataClass[dataClassKey]
+        ? bindingCandidatesPerDataClass[dataClassKey].push(...tokenValues)
+        : (bindingCandidatesPerDataClass[dataClassKey] = [...tokenValues]);
     }
   }
   return bindingCandidatesPerDataClass;

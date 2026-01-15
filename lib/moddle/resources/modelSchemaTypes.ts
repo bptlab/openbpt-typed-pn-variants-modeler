@@ -29,6 +29,7 @@ interface Arc extends ModelElement {
     isInhibitorArc?: boolean;
     variableType?: DataClass;
     inscription: any | null; // TODO: check if can be null
+    isExactSynchronization?: boolean;
   };
 }
 
