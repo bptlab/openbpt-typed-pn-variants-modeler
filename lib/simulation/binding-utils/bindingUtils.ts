@@ -21,7 +21,7 @@ import {
 
 export function getValidInputBindings(
   transition: Transition,
-): BindingPerDataClassWithSynchro[] {
+): BindingPerDataClass[] {
   // Early return: unbound output variables
   if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
     // console.log(`Transition ${transition.id} has unbound output variables.`);
@@ -94,13 +94,10 @@ export function getValidInputBindings(
   );
 
   // Step 5: check for ExactSubsetSynchro constraint
-  console.log("Transition", transition.id);
   const synchedInputBindings = checkExactSynchroConstraints(
     arcPlaceInfoDict,
     filteredInputBindings,
   );
-
-  console.log("InputBindings", synchedInputBindings);
 
   return synchedInputBindings;
 }

@@ -1,3 +1,4 @@
+import { is } from "../../util/Util";
 import {
   createDataClassCombinationKeyFromDict,
   getDataClassFromKey,
@@ -28,7 +29,7 @@ export function buildArcPlaceInfoDict(incomingArcs: Arc[]): ArcPlaceInfoDict {
 
     const dataClassCombination = createDataClassCombinationKeyFromDict(
       arcPlaceInfo.dataClassInfoDict,
-    );
+    ) + `:${arcPlaceInfo.isExactSyncing}`;
     if (!existingDataClassCombinations[dataClassCombination]) {
       existingDataClassCombinations[dataClassCombination] = arc.id;
       arcPlaceInfoDict[arc.id] = arcPlaceInfo;
@@ -108,6 +109,7 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
 
   const place: Place = arc.businessObject.source as Place;
   const isInhibitorArc: boolean = arc.businessObject.isInhibitorArc || false;
+  const isExactSyncing: boolean = arc.businessObject?.isExactSynchronization || false;
 
   const dataClassInfoDict: {
     [dataClassKey: string]: string[];
@@ -119,7 +121,13 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
   for (const element of inscriptionElements) {
     const dataClass = element.dataClass;
     if (dataClass?.id) {
-      dataClassInfoDict[getDataClassKey(dataClass.id, element.variableName, variableClass === dataClass)] = []
+      const isVariable = variableClass === dataClass;
+      dataClassInfoDict[
+        getDataClassKey(
+          dataClass.id, 
+          element.variableName, 
+          isVariable,
+        )] = []
     }
   }
   
@@ -154,7 +162,7 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
     tokens: customMarking,
     isInhibitorArc: isInhibitorArc,
     isLinkingPlace: Object.keys(dataClassInfoDict).length > 1,
-    isExactSyncing: arc.businessObject?.isExactSynchronization || false, // TODO: implement exact synchronization logic
+    isExactSyncing: isExactSyncing,
     variableClass: variableClass,
     dataClassInfoDict: dataClassInfoDict,
   };

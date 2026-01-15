@@ -11,6 +11,10 @@ interface DataClassInfo {
   tokenValues: TokenValue["value"][];
 }
 
+interface DataClassInfoDict {
+  [dataClassKey: string]: TokenValue["value"][];
+}
+
 /**
  * Represents information about the relationship between an arc and a place in a Petri net model.
  *
@@ -30,9 +34,7 @@ interface ArcPlaceInfo {
   isLinkingPlace: boolean;
   isExactSyncing: boolean;
   variableClass: DataClass | undefined;
-  dataClassInfoDict: {
-    [dataClassKey: string]: TokenValue["value"][];
-  };
+  dataClassInfoDict: DataClassInfoDict;
 }
 
 /**
@@ -75,5 +77,7 @@ type TokenPerLink = { [dataClassCombinationKey: string]: Token[] };
  * representing the bindings related to that data class.
  */
 type BindingPerDataClass = { [DataClassKey: string]: string[] };
+
+type GroupedTokens = { [dataClassCombinationKey: string]: BindingPerDataClass };
 
 type BindingPerDataClassWithSynchro = {DataClassKey: string, isExactSync: boolean, values: string[] };
