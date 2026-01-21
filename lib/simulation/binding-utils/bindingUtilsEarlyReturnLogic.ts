@@ -1,15 +1,18 @@
 import { getDataClassKey } from "./bindingUtilsHelper";
 
 /**
- * Determines whether there are any output variables in the outgoing arcs that are not bound by the input variables
- * from the incoming arcs. An output variable is considered "unbound" if its data class key does not exist among
- * the input data class keys.
+ * Determines whether there are unbound output variables based on the provided incoming and outgoing arcs.
  *
- * The function ignores inhibitor arcs and skips generated inscription elements when collecting output data class keys.
+ * This function filters out inhibitor arcs from both incoming and outgoing arcs, then analyzes the data class keys
+ * associated with each arc's inscription elements. It checks if there are any output data class keys that are not
+ * present in the input data class keys, indicating unbound output variables. It also considers arcs with only generated
+ * inscription elements and handles structurally incorrect arcs (e.g., missing inscription elements).
  *
- * @param incomingArcs - Array of incoming Arc objects to check for input variable bindings. Inhibitor arcs are ignored.
- * @param outgoingArcs - Array of outgoing Arc objects to check for output variables. Generated inscription elements are ignored.
- * @returns `true` if there is at least one output variable that is not bound by any input variable; otherwise, `false`.
+ * @param incomingArcs - The list of incoming arcs to the node, each potentially carrying data class keys.
+ * @param outgoingArcs - The list of outgoing arcs from the node, each potentially carrying data class keys.
+ * @returns A tuple:
+ *   - The first element is a boolean indicating whether there are unbound output variables.
+ *   - The second element is an array of string keys representing the unbound output data class keys.
  */
 export function hasUnboundOutputVariables(
   incomingArcs: Arc[],
@@ -26,7 +29,7 @@ export function hasUnboundOutputVariables(
         arc.businessObject.inscription?.inscriptionElements || [];
       const variableType = arc.businessObject.variableType || { id: "", alias: "" };
       if (inscriptionElements.length === 0) {
-        return [new Set(), 0]; // Return an empty Set and zero count to indicate no data class keys
+        return [new Set(), 0]; // Return an empty Set and zero count to indicate structural incorrectness
       }
       let countGenerated = 0;
       for (const el of inscriptionElements) {
@@ -50,13 +53,18 @@ export function hasUnboundOutputVariables(
   const [outputDataClassKeys, completelyGeneratedArcs] = getDataClassKeysFromArcs(outgoingArcs, true);
 
   const outputDataClassKeysArray = 
-    (inputDataClassKeys.size === 0 && incomingArcs.length > 0) 
-    ? [] 
-    : Array.from(outputDataClassKeys).filter(key => !inputDataClassKeys.has(key));
+  (inputDataClassKeys.size === 0 && incomingArcs.length > 0) 
+  ? [] // if there are incoming arcs without data class keys, return empty array
+  : Array.from(outputDataClassKeys).filter(key => !inputDataClassKeys.has(key));
 
-  return [(outputDataClassKeys.size === 0 && outgoingArcs.length - completelyGeneratedArcs > 0) || 
-    Array.from(outputDataClassKeys).some(key => !inputDataClassKeys.has(key)), 
-    outputDataClassKeysArray];
+  const hasNoOutputDataClassKeys = outputDataClassKeys.size === 0;
+  const hasNonGeneratedOutgoingArcs = outgoingArcs.length - completelyGeneratedArcs > 0;
+  const hasUnboundByDataClassKey = outputDataClassKeysArray.length > 0;
+  const hasUnboundOutputs =
+    (hasNoOutputDataClassKeys && hasNonGeneratedOutgoingArcs) ||
+    hasUnboundByDataClassKey;
+
+  return [hasUnboundOutputs, outputDataClassKeysArray];
 }
 
 /**
