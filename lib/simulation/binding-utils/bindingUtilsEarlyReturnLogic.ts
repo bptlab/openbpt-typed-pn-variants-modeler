@@ -18,32 +18,45 @@ export function hasUnboundOutputVariables(
   incomingArcs = incomingArcs.filter((arc) => !arc.businessObject.isInhibitorArc);
   outgoingArcs = outgoingArcs.filter((arc) => !arc.businessObject.isInhibitorArc);
 
-  function getDataClassKeysFromArcs(arcs: Arc[], isOutgoing: boolean): Set<string> {
+  function getDataClassKeysFromArcs(arcs: Arc[], isOutgoing: boolean): [Set<string>, number] {
     const dataClassKeys = new Set<string>();
+    let completelyGeneratedArcs = 0;
     for (const arc of arcs) {
       const inscriptionElements =
         arc.businessObject.inscription?.inscriptionElements || [];
       const variableType = arc.businessObject.variableType || { id: "", alias: "" };
       if (inscriptionElements.length === 0) {
-        return new Set(); // Return an empty Set to indicate no output data class keys
+        return [new Set(), 0]; // Return an empty Set and zero count to indicate no data class keys
       }
+      let countGenerated = 0;
       for (const el of inscriptionElements) {
-        if (isOutgoing && el.isGenerated) continue;
+        if (isOutgoing && el.isGenerated) {
+          countGenerated++;
+          continue;
+        }
         dataClassKeys.add(getDataClassKey(
           el.dataClass.id,
           el.dataClass.alias,
           (el.dataClass.id === variableType.id && el.dataClass.alias === variableType.alias),
         ));
       }
+      if (isOutgoing && countGenerated === inscriptionElements.length)
+        completelyGeneratedArcs++;
     }
-    return dataClassKeys;
+    return [dataClassKeys, completelyGeneratedArcs];
   }
 
-  const inputDataClassKeys = getDataClassKeysFromArcs(incomingArcs, false);
-  const outputDataClassKeys = getDataClassKeysFromArcs(outgoingArcs, true);
+  const inputDataClassKeys = getDataClassKeysFromArcs(incomingArcs, false)[0];
+  const [outputDataClassKeys, completelyGeneratedArcs] = getDataClassKeysFromArcs(outgoingArcs, true);
 
-  return [(outputDataClassKeys.size === 0 && outgoingArcs.length > 0) || 
-    Array.from(outputDataClassKeys).some(key => !inputDataClassKeys.has(key)), Array.from(outputDataClassKeys).filter(key => !inputDataClassKeys.has(key))];
+  const outputDataClassKeysArray = 
+    (inputDataClassKeys.size === 0 && incomingArcs.length > 0) 
+    ? [] 
+    : Array.from(outputDataClassKeys).filter(key => !inputDataClassKeys.has(key));
+
+  return [(outputDataClassKeys.size === 0 && outgoingArcs.length - completelyGeneratedArcs > 0) || 
+    Array.from(outputDataClassKeys).some(key => !inputDataClassKeys.has(key)), 
+    outputDataClassKeysArray];
 }
 
 /**
