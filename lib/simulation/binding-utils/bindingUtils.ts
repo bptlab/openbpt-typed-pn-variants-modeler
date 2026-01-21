@@ -23,7 +23,7 @@ export function getValidInputBindings(
   transition: Transition,
 ): BindingPerDataClass[] {
   // Early return: unbound output variables
-  if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)) {
+  if (hasUnboundOutputVariables(transition.incoming, transition.outgoing)[0]) {
     // console.log(`Transition ${transition.id} has unbound output variables.`);
     return [];
   }

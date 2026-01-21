@@ -14,17 +14,21 @@ import { getDataClassKey } from "./bindingUtilsHelper";
 export function hasUnboundOutputVariables(
   incomingArcs: Arc[],
   outgoingArcs: Arc[],
-): boolean {
+): [boolean, string[]] {
   incomingArcs = incomingArcs.filter((arc) => !arc.businessObject.isInhibitorArc);
   outgoingArcs = outgoingArcs.filter((arc) => !arc.businessObject.isInhibitorArc);
-  function getDataClassKeysFromArcs(arcs: Arc[], ignoreGenerated: boolean): Set<string> {
+
+  function getDataClassKeysFromArcs(arcs: Arc[], isOutgoing: boolean): Set<string> {
     const dataClassKeys = new Set<string>();
     for (const arc of arcs) {
       const inscriptionElements =
         arc.businessObject.inscription?.inscriptionElements || [];
       const variableType = arc.businessObject.variableType || { id: "", alias: "" };
+      if (inscriptionElements.length === 0) {
+        return new Set(); // Return an empty Set to indicate no output data class keys
+      }
       for (const el of inscriptionElements) {
-        if (ignoreGenerated && el.isGenerated) continue;
+        if (isOutgoing && el.isGenerated) continue;
         dataClassKeys.add(getDataClassKey(
           el.dataClass.id,
           el.dataClass.alias,
@@ -35,10 +39,11 @@ export function hasUnboundOutputVariables(
     return dataClassKeys;
   }
 
-  const inputDataClassKeys = getDataClassKeysFromArcs(incomingArcs.filter((arc) => !arc.businessObject.isInhibitorArc), false);
-  const outputDataClassKeys = getDataClassKeysFromArcs(outgoingArcs.filter((arc) => !arc.businessObject.isInhibitorArc), true);
+  const inputDataClassKeys = getDataClassKeysFromArcs(incomingArcs, false);
+  const outputDataClassKeys = getDataClassKeysFromArcs(outgoingArcs, true);
 
-  return Array.from(outputDataClassKeys).some(key => !inputDataClassKeys.has(key));
+  return [(outputDataClassKeys.size === 0 && outgoingArcs.length > 0) || 
+    Array.from(outputDataClassKeys).some(key => !inputDataClassKeys.has(key)), Array.from(outputDataClassKeys).filter(key => !inputDataClassKeys.has(key))];
 }
 
 /**
