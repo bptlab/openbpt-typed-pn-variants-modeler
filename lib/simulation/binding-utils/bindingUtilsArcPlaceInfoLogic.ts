@@ -74,7 +74,7 @@ function buildDataClassInfoDict(
     for (const [dataClassKey, value] of Object.entries(token)) {
       if (!dataClassInfoDict[dataClassKey]) {
         dataClassInfoDict[dataClassKey] = [];
-}
+      }
       if (!dataClassInfoDict[dataClassKey].includes(value)) {
         dataClassInfoDict[dataClassKey].push(value);
       }
@@ -123,13 +123,13 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
       const isVariable = variableClass === dataClass;
       dataClassInfoDict[
         getDataClassKey(
-          dataClass.id, 
-          element.variableName, 
+          dataClass.id,
+          element.variableName,
           isVariable,
         )] = [];
     }
   }
-  
+
   const marking = place.marking ?? [];
   const customMarking: Token[] = [];
   for (const token of marking) {
@@ -137,6 +137,9 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
     const tokenValues = token.values ?? [];
     for (const { dataClass, value } of tokenValues) {
       tokenObj[
+        Object.keys(dataClassInfoDict).find((dataClassKey) =>
+          getDataClassFromKey(dataClassKey).id === dataClass.id
+        ) ||
         getDataClassKey(
           dataClass.id,
           dataClass.alias,
@@ -148,9 +151,13 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
   }
 
   for (const token of customMarking) {
-    for (const [dataClassKey, value] of Object.entries(token)) {
-      if (!dataClassInfoDict[dataClassKey].includes(value)) {
-        dataClassInfoDict[dataClassKey].push(value);
+    for (const [tokenDataClassKey, value] of Object.entries(token)) {
+      for (const dataClassKey of Object.keys(dataClassInfoDict).filter((key) =>
+        getDataClassFromKey(key).id === getDataClassFromKey(tokenDataClassKey).id
+      )) {
+        if (!dataClassInfoDict[dataClassKey].includes(value)) {
+          dataClassInfoDict[dataClassKey].push(value);
+        }
       }
     }
   }
