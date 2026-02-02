@@ -124,7 +124,7 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
       dataClassInfoDict[
         getDataClassKey(
           dataClass.id,
-          element.variableName,
+          element.variableName || dataClass.alias,
           isVariable,
         )] = [];
     }
