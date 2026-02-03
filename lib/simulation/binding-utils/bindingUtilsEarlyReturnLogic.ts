@@ -39,7 +39,7 @@ export function hasUnboundOutputVariables(
         }
         dataClassKeys.add(getDataClassKey(
           el.dataClass.id,
-          el.dataClass.alias,
+          el.variableName || el.dataClass.alias,
           (el.dataClass.id === variableType.id && el.dataClass.alias === variableType.alias),
         ));
       }

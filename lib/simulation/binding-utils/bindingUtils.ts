@@ -27,26 +27,26 @@ export function getValidInputBindings(
     // console.log(`Transition ${transition.id} has unbound output variables.`);
     return [];
   }
-  
+
   // Step 1: build arcPlaceInfoDict and tokenStructure
   const arcPlaceInfoDict = buildArcPlaceInfoDict(transition.incoming);
-  
+
   // Early return: missing tokens in non-inhibitor arcs
   if (!hasAvailableTokensForAllArcs(arcPlaceInfoDict)) {
     // console.log(`Transition ${transition.id} has missing tokens in non-inhibitor arcs.`);
     return [];
   }
-  
+
   // Step 2: get biggest exclusive links, link tokens per place, placeId per dataClass alias
   const nonInhibitorArcs = getNonInhibitorArcs(arcPlaceInfoDict);
-  
+
   const [biggestLinks, allLinks] = getBiggestLinks(nonInhibitorArcs);
   const tokenPerLink = getTokenPerLink(nonInhibitorArcs);
-  
+
   // Step 3: compute bindings
   const bindingPerDataClassFromNonLinkingArcs =
-  getBindingPerDataClassFromNonLinkingArcs(nonInhibitorArcs);
-  
+    getBindingPerDataClassFromNonLinkingArcs(nonInhibitorArcs);
+
   let validInputBindings: BindingPerDataClass[];
 
   if (biggestLinks.length == 0) {
