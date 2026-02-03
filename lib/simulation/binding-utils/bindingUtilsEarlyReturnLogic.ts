@@ -52,11 +52,13 @@ export function hasUnboundOutputVariables(
   const inputDataClassKeys = getDataClassKeysFromArcs(incomingArcs, false)[0];
   const [outputDataClassKeys, completelyGeneratedArcs] = getDataClassKeysFromArcs(outgoingArcs, true);
 
-  const outputDataClassKeysArray = Array.from(outputDataClassKeys).filter(key => !inputDataClassKeys.has(key));
+  let outputDataClassKeysArray = Array.from(outputDataClassKeys).filter(key => !inputDataClassKeys.has(key));
   const hasNoOutputDataClassKeys = outputDataClassKeys.size === 0;
   const hasNonGeneratedOutgoingArcs = outgoingArcs.length - completelyGeneratedArcs > 0;
   const hasUnboundByDataClassKey = outputDataClassKeysArray.length > 0;
   const hasIncomingArcsWithoutDataClassKeys = (inputDataClassKeys.size === 0 && incomingArcs.length > 0);
+  if (hasIncomingArcsWithoutDataClassKeys)
+    outputDataClassKeysArray = [];
   const hasUnboundOutputs =
     (hasNoOutputDataClassKeys && hasNonGeneratedOutgoingArcs) ||
     hasUnboundByDataClassKey ||
