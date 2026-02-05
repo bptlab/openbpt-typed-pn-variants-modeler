@@ -119,12 +119,13 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
     arc.businessObject.inscription?.inscriptionElements ?? [];
   for (const element of inscriptionElements) {
     const dataClass = element.dataClass;
-    if (dataClass?.id) {
+    const variableName = element.variableName;
+    if (dataClass?.id && variableName) {
       const isVariable = variableClass === dataClass;
       dataClassInfoDict[
         getDataClassKey(
           dataClass.id,
-          element.variableName || dataClass.alias,
+          variableName,
           isVariable,
         )] = [];
     }
@@ -136,30 +137,17 @@ function buildArcPlaceInfo(arc: Arc): ArcPlaceInfo {
     const tokenObj: Token = {};
     const tokenValues = token.values ?? [];
     for (const { dataClass, value } of tokenValues) {
-      tokenObj[
-        Object.keys(dataClassInfoDict).find((dataClassKey) =>
-          getDataClassFromKey(dataClassKey).id === dataClass.id
-        ) ||
-        getDataClassKey(
-          dataClass.id,
-          dataClass.alias,
-          variableClass === dataClass,
-        )
-      ] = value;
-    }
-    customMarking.push(tokenObj);
-  }
-
-  for (const token of customMarking) {
-    for (const [tokenDataClassKey, value] of Object.entries(token)) {
-      for (const dataClassKey of Object.keys(dataClassInfoDict).filter((key) =>
-        getDataClassFromKey(key).id === getDataClassFromKey(tokenDataClassKey).id
-      )) {
+      Object.keys(dataClassInfoDict).filter((dataClassKey) =>
+        getDataClassFromKey(dataClassKey).id === dataClass.id
+      ).forEach((dataClassKey) => {
+        tokenObj[dataClassKey] = value;
         if (!dataClassInfoDict[dataClassKey].includes(value)) {
           dataClassInfoDict[dataClassKey].push(value);
         }
       }
+      );
     }
+    customMarking.push(tokenObj);
   }
 
   return {
